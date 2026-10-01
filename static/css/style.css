@@ -150,3 +150,33 @@ input[type="range"]::-webkit-slider-thumb:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-faint);
 }
+
+/* TOC Drawer Animation */
+.drawer-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  transition: opacity 0.25s ease;
+}
+
+.drawer-panel {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Chapter Card in TOC */
+.toc-chapter-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.toc-chapter-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.toc-chapter-item.is-active {
+  border-color: #d97706; /* amber-600 */
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+html.dark .toc-chapter-item.is-active {
+  border-color: #f59e0b; /* amber-500 */
+  background-color: rgba(245, 158, 11, 0.12);
+}

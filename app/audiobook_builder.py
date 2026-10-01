@@ -3,6 +3,7 @@ Audiobook assembler: tags ID3 metadata, builds single-file audiobooks, and gener
 """
 
 import os
+import shutil
 import zipfile
 import subprocess
 from typing import List, Dict, Any, Optional

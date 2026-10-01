@@ -102,6 +102,9 @@ async def trigger_cleanup():
 async def broadcast_progress(job_id: str, data: Dict[str, Any]):
     """Sends real-time progress update to connected WebSockets."""
     if job_id in JOBS:
+        # Don't let late progress callbacks overwrite completed status
+        if JOBS[job_id].get("status") == "completed" and data.get("status") != "completed":
+            return
         JOBS[job_id].update(data)
     if job_id in ACTIVE_WEBSOCKETS:
         for ws in list(ACTIVE_WEBSOCKETS[job_id]):

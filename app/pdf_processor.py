@@ -287,9 +287,9 @@ class PDFProcessor:
 
         # Bookmarks -> Regex -> Length
         chapters = PDFProcessor._extract_by_bookmarks(reader, pages_text)
-        if not chapters or len(chapters) <= 1:
+        if not chapters:
             chapters = PDFProcessor._extract_by_regex(pages_text)
-        if not chapters or len(chapters) <= 1:
+        if not chapters:
             chapters = PDFProcessor._extract_by_length(pages_text)
 
         return PDFProcessor._finalize_chapters(chapters, title, author, total_pages)
@@ -417,9 +417,24 @@ class PDFProcessor:
     @staticmethod
     def extract_from_text(text: str, title: str = "Audiobook") -> Dict[str, Any]:
         cleaned = clean_text_chunk(text)
+        author = "Unknown Author"
+
+        # Detect Title and Author if present in top lines
+        lines = [l.strip() for l in cleaned.split("\n") if l.strip()]
+        if len(lines) >= 2:
+            m_by = re.match(r"^(?:by|written by|author:)\s+(.+)$", lines[1], re.IGNORECASE)
+            if m_by and len(lines[0]) < 80 and not lines[0].endswith((".", "!", "?")):
+                title = lines[0]
+                author = m_by.group(1).strip()
+            elif len(lines) >= 3:
+                m_by2 = re.match(r"^(?:by|written by|author:)\s+(.+)$", lines[2], re.IGNORECASE)
+                if m_by2 and len(lines[0]) < 80 and not lines[0].endswith((".", "!", "?")):
+                    title = lines[0]
+                    author = m_by2.group(1).strip()
+
         pages_dummy = [(1, cleaned)]
         chapters = PDFProcessor._extract_by_regex(pages_dummy)
-        if not chapters or len(chapters) <= 1:
+        if not chapters:
             chapters = PDFProcessor._extract_by_length(pages_dummy)
             if not chapters:
                 chapters = [{
@@ -427,12 +442,103 @@ class PDFProcessor:
                     "content": cleaned
                 }]
 
-        return PDFProcessor._finalize_chapters(chapters, title, "Unknown Author", total_pages=1)
+        return PDFProcessor._finalize_chapters(chapters, title, author, total_pages=1)
+
+    @staticmethod
+    def _is_front_matter_or_boilerplate(title: str, content: str, book_title: str, book_author: str) -> bool:
+        """Determines if a chapter is stub front-matter (covers, copyright, TOC, ISBN) rather than real story prose."""
+        t_low = title.strip().lower()
+        c_low = content.strip().lower()
+        words = len(content.split())
+
+        skip_titles = {
+            "cover", "title page", "title", "halftitle", "half title",
+            "copyright", "copyrights", "colophon", "imprint",
+            "table of contents", "contents", "toc", "dedication",
+            "about the author", "author's note", "also by", "praise for",
+            "epigraph", "front matter", "frontmatter"
+        }
+        if any(st == t_low or t_low.startswith(st + " ") or t_low.endswith(" " + st) for st in skip_titles):
+            return True
+
+        # If short (< 150 words) and contains publishing / copyright boilerplate
+        boilerplate_keywords = [
+            "all rights reserved", "isbn", "published by", "printed in",
+            "cataloging in publication", "first edition", "copyright",
+            "gutenberg license", "project gutenberg"
+        ]
+        if words < 150 and any(kw in c_low for kw in boilerplate_keywords):
+            return True
+
+        # If chapter content is basically just book title or author (< 45 words)
+        t_norm = re.sub(r"[^a-z0-9]", "", book_title.lower()) if book_title else ""
+        c_norm = re.sub(r"[^a-z0-9]", "", c_low)
+        if words < 45 and t_norm and t_norm in c_norm:
+            return True
+
+        return False
+
+    @staticmethod
+    def _strip_leading_book_metadata(content: str, title: str, author: str, chapter_title: str = "") -> str:
+        """Removes redundant book title, author, or repeated chapter headers from the start of prose."""
+        lines = content.split("\n")
+        idx = 0
+        t_norm = re.sub(r"[^a-zA-Z0-9]", "", title).lower() if title else ""
+        a_norm = re.sub(r"[^a-zA-Z0-9]", "", author).lower() if author and author != "Unknown Author" else ""
+        ch_norm = re.sub(r"[^a-zA-Z0-9]", "", chapter_title).lower() if chapter_title else ""
+
+        while idx < min(8, len(lines)):
+            l = lines[idx].strip()
+            if not l:
+                idx += 1
+                continue
+            l_norm = re.sub(r"[^a-zA-Z0-9]", "", l).lower()
+            if not l_norm:
+                idx += 1
+                continue
+
+            # Skip matching book title
+            if t_norm and (l_norm == t_norm or l_norm.startswith(t_norm)):
+                idx += 1
+                continue
+            # Skip matching author
+            if a_norm and (l_norm == a_norm or l_norm == f"by{a_norm}" or l_norm.endswith(a_norm)):
+                idx += 1
+                continue
+            if re.match(r"^(?:by|written by|author:)\s+[A-Za-z\s\.]+$", l, re.IGNORECASE):
+                idx += 1
+                continue
+            # Skip repeated chapter header e.g. "Chapter 1: The Departure"
+            if ch_norm and (l_norm == ch_norm or ch_norm.startswith(l_norm)):
+                idx += 1
+                continue
+            if re.match(r"^(?:chapter|part|section|book|act)\s+(?:[0-9]+|[ivxlcdm]+|[a-z]+)(?:[:.\-–—]\s*.*)?$", l, re.IGNORECASE):
+                idx += 1
+                continue
+
+            break
+
+        return "\n".join(lines[idx:]).strip()
 
     @staticmethod
     def _finalize_chapters(chapters: List[Dict[str, Any]], title: str, author: str, total_pages: int) -> Dict[str, Any]:
+        filtered_chapters = []
+        for ch in chapters:
+            content = ch.get("content", "").strip()
+            ch_title = ch.get("title", "").strip()
+            if len(chapters) > 1 and PDFProcessor._is_front_matter_or_boilerplate(ch_title, content, title, author):
+                continue
+            filtered_chapters.append(ch)
+
+        if not filtered_chapters:
+            filtered_chapters = chapters
+
+        # Strip redundant leading book titles & chapter headers so the narrator starts directly from chapter content
+        for ch in filtered_chapters:
+            ch["content"] = PDFProcessor._strip_leading_book_metadata(ch["content"], title, author, ch.get("title", ""))
+
         total_words = 0
-        for idx, ch in enumerate(chapters, 1):
+        for idx, ch in enumerate(filtered_chapters, 1):
             ch["index"] = idx
             words = len(ch["content"].split())
             ch["word_count"] = words
@@ -447,7 +553,7 @@ class PDFProcessor:
             "total_pages": total_pages,
             "total_words": total_words,
             "total_duration_min": total_duration,
-            "chapters": chapters
+            "chapters": filtered_chapters
         }
 
     @staticmethod
@@ -502,14 +608,24 @@ class PDFProcessor:
         )
 
         matches = list(chapter_pattern.finditer(full_text))
-        if len(matches) < 2:
+        if not matches:
             return []
 
         chapters = []
+        # If there is substantial narrative text before the first chapter match
+        if matches[0].start() > 0:
+            pre_chunk = full_text[:matches[0].start()].strip()
+            words_pre = len(pre_chunk.split())
+            is_boilerplate = any(kw in pre_chunk.lower() for kw in ["all rights reserved", "isbn", "project gutenberg", "copyright"])
+            if words_pre >= 180 and not is_boilerplate:
+                chapters.append({
+                    "title": "Introduction",
+                    "content": pre_chunk
+                })
+
         for i in range(len(matches)):
             match = matches[i]
             title = match.group(1).strip()
-            # Clean markdown hashes or extra spaces
             title = re.sub(r"^#+\s*", "", title)
             title = re.sub(r"\s+", " ", title)
 

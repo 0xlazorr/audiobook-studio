@@ -35,48 +35,80 @@
 <body class="bg-[#fbf9f5] dark:bg-[#141311] text-[#1f1d1a] dark:text-[#f0ece1] flex flex-col min-h-screen selection:bg-amber-200 dark:selection:bg-amber-900">
 
   <!-- Top Navigation Bar -->
-  <header class="border-b border-[#e7e3da] dark:border-[#33302b] bg-white dark:bg-[#1a1815] sticky top-0 z-40 transition-colors">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 flex items-center justify-center font-serif text-base font-bold shadow-sm">
+  <header class="border-b border-[#e7e3da] dark:border-[#33302b] bg-white/95 dark:bg-[#1a1815]/95 backdrop-blur sticky top-0 z-40 transition-colors">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+      
+      <!-- Brand & Book Title -->
+      <div class="flex items-center space-x-3 truncate">
+        <div class="w-8 h-8 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 flex items-center justify-center font-serif text-base font-bold shadow-sm flex-shrink-0">
           A
         </div>
-        <div>
-          <span class="font-bold text-sm tracking-tight text-stone-900 dark:text-stone-100">Audiobook Studio</span>
-          <span class="text-xs text-stone-500 dark:text-stone-400 ml-1.5 hidden sm:inline">&mdash; Natural Spoken Audiobooks</span>
+        <div class="flex items-center space-x-2 truncate">
+          <span class="font-bold text-sm tracking-tight text-stone-900 dark:text-stone-100 flex-shrink-0">Audiobook Studio</span>
+          
+          <!-- When book is loaded, shows in header -->
+          <div id="headerBookContainer" class="hidden items-center space-x-2 truncate text-xs text-stone-500 dark:text-stone-400">
+            <span class="text-stone-300 dark:text-stone-700">/</span>
+            <span id="headerBookTitle" class="font-serif font-bold text-stone-800 dark:text-stone-200 truncate">Book Title</span>
+            <span id="headerBookAuthor" class="hidden md:inline truncate">&bull; by Author</span>
+          </div>
         </div>
       </div>
 
-      <!-- Actions & Theme Toggle -->
-      <div class="flex items-center space-x-2">
-        <button id="btnUploadNew" class="text-xs bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5 shadow-sm">
+      <!-- Actions & Controls -->
+      <div class="flex items-center space-x-2 flex-shrink-0">
+        <!-- Reader Quick Controls (Visible once book loaded) -->
+        <div id="headerBookActions" class="hidden items-center space-x-1.5 sm:space-x-2">
+          <!-- Chapters / TOC Button -->
+          <button id="btnOpenTOC" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 flex items-center space-x-1.5 transition">
+            <i data-lucide="list" class="w-3.5 h-3.5 text-stone-500"></i>
+            <span id="btnOpenTOCText">Chapters</span>
+          </button>
+
+          <!-- Narrator Voice Pill -->
+          <button id="btnOpenNarratorModal" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-800 dark:text-stone-200 flex items-center space-x-1.5 transition" title="Change voice and tone">
+            <i data-lucide="mic" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+            <span id="btnHeaderNarratorText" class="truncate max-w-[120px] sm:max-w-none">Narrator</span>
+          </button>
+
+          <!-- Export Audiobook Primary Button -->
+          <button id="btnOpenExportModal" class="bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center space-x-1.5">
+            <i data-lucide="headphones" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Export</span>
+            <span>Audiobook</span>
+          </button>
+        </div>
+
+        <!-- Upload New File Button -->
+        <button id="btnUploadNew" class="text-xs text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 px-2.5 py-1.5 rounded-lg font-medium transition flex items-center space-x-1" title="Upload another book">
           <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-          <span>Upload File</span>
+          <span class="hidden sm:inline">Upload</span>
         </button>
 
         <!-- Dark Mode Toggle -->
-        <button id="btnToggleTheme" class="p-1.5 rounded-md text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-700 transition" title="Toggle Light / Dark Mode">
+        <button id="btnToggleTheme" class="p-1.5 rounded-lg text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-200 dark:border-stone-700 transition" title="Toggle Light / Dark Mode">
           <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
           <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
         </button>
       </div>
+
     </div>
   </header>
 
   <!-- Upload Section (Shown initially when starting) -->
-  <section id="uploadSection" class="max-w-xl mx-auto my-12 px-4 w-full">
-    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl p-8 sm:p-10 text-center space-y-4 shadow-sm transition-colors">
+  <section id="uploadSection" class="max-w-xl mx-auto my-14 px-4 w-full">
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl p-8 sm:p-12 text-center space-y-4 shadow-sm transition-colors">
       <input type="file" id="fileInput" accept=".pdf,.epub,.docx,.txt,.md,.markdown,.html,.htm,.rtf" class="hidden">
       
-      <div id="dropzonePrompt" class="space-y-3 cursor-pointer py-4" onclick="document.getElementById('fileInput').click()">
-        <div class="w-14 h-14 mx-auto rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
-          <i data-lucide="file-up" class="w-7 h-7"></i>
+      <div id="dropzonePrompt" class="space-y-4 cursor-pointer py-4" onclick="document.getElementById('fileInput').click()">
+        <div class="w-16 h-16 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800 shadow-sm">
+          <i data-lucide="file-up" class="w-8 h-8"></i>
         </div>
         <div>
-          <h2 class="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">Upload Your Book or Document</h2>
+          <h2 class="text-xl sm:text-2xl font-serif font-bold text-stone-900 dark:text-stone-100">Upload Your Book or Document</h2>
           <p class="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">Drag & drop your file here, or click to browse</p>
         </div>
-        <div class="pt-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400">
+        <div class="pt-2 flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400">
           <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">PDF</span>
           <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">EPUB</span>
           <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">Word (DOCX)</span>
@@ -87,87 +119,44 @@
 
       <div id="uploadSpinner" class="hidden py-8 space-y-2">
         <div class="w-8 h-8 border-2 border-stone-300 dark:border-stone-600 border-t-stone-800 dark:border-t-stone-100 rounded-full animate-spin mx-auto"></div>
-        <p class="text-xs text-stone-600 dark:text-stone-300 font-medium">Extracting book text, chapters, and cleaning headers...</p>
+        <p class="text-xs text-stone-600 dark:text-stone-300 font-medium">Extracting chapters and filtering page artifacts...</p>
       </div>
     </div>
   </section>
 
-  <!-- Main Reader Canvas (Shown once a file is uploaded) -->
-  <main id="readerSection" class="hidden flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 pb-36 space-y-6">
+  <!-- Main Reader View (Shown once a file is uploaded) -->
+  <main id="readerSection" class="hidden flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 pb-40 space-y-6">
 
-    <!-- Document Info & Narrator Controls Bar -->
-    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-xl p-4 sm:p-5 shadow-sm space-y-4 transition-colors">
-      
-      <!-- Row 1: Book Title, Author & Stats -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-stone-100 dark:border-[#33302b] gap-3">
-        <div>
-          <h1 id="bookTitleDisplay" class="font-serif text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Document Title</h1>
-          <p id="bookAuthorDisplay" class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">By Author &bull; <span id="bookStatsDisplay">Chapters &bull; Words</span></p>
+    <!-- Compact Chapter Reading Bar -->
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-xl px-4 py-3 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
+      <div class="flex items-center space-x-3 text-xs w-full sm:w-auto">
+        <button id="btnBarTOC" class="font-medium text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 flex items-center space-x-1.5 p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition" title="Open Table of Contents">
+          <i data-lucide="list" class="w-4 h-4 text-stone-500"></i>
+          <span id="barChapterName">Chapter 1</span>
+        </button>
+        <span class="text-stone-300 dark:text-stone-700">&bull;</span>
+        <button id="btnBarNarrator" class="text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 flex items-center space-x-1 hover:underline" title="Change voice and tone">
+          <span id="barNarratorName">⭐ Andrew (US)</span>
+        </button>
+        <span class="text-stone-300 dark:text-stone-700">&bull;</span>
+        <!-- Reader Typography Controls -->
+        <div class="flex items-center space-x-1 text-stone-500 dark:text-stone-400">
+          <button id="btnFontSmaller" class="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-[11px] font-bold" title="Smaller text">A-</button>
+          <button id="btnFontLarger" class="p-1 rounded hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold" title="Larger text">A+</button>
         </div>
+      </div>
 
-        <!-- Full Audiobook Download Button -->
-        <button id="btnOpenExportModal" class="bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm flex items-center space-x-1.5 self-start sm:self-center flex-shrink-0">
-          <i data-lucide="headphones" class="w-3.5 h-3.5"></i>
-          <span>Create & Download Audiobook</span>
+      <!-- Center / Right: Big Play/Pause Chapter Button -->
+      <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+        <button id="btnInlinePlay" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow-sm flex items-center space-x-2" title="Play or pause this chapter (Spacebar)">
+          <i data-lucide="play" class="w-4 h-4 fill-white" id="inlinePlayIcon"></i>
+          <span id="inlinePlayText">Listen to Chapter</span>
+        </button>
+        <button id="btnBarExport" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 text-xs font-semibold px-3 py-2 rounded-lg transition flex items-center space-x-1 border border-stone-200 dark:border-stone-700" title="Export Full Audiobook">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Export</span>
         </button>
       </div>
-
-      <!-- Row 2: Voice, Pacing & Chapter Selectors -->
-      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
-        
-        <!-- Narrator Selector (5 cols) -->
-        <div class="sm:col-span-5 space-y-1">
-          <div class="flex items-center justify-between">
-            <label class="font-semibold text-stone-700 dark:text-stone-300 block">Narrator Voice:</label>
-            <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Emotional & Nuanced</span>
-          </div>
-          <div class="flex items-center space-x-1.5">
-            <select id="voiceSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
-              <!-- Populated dynamically -->
-            </select>
-            <button id="btnTestVoice" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 px-2 py-2 rounded-lg text-xs font-medium flex-shrink-0" title="Audition voice sample">
-              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Chapter Selector (4 cols) -->
-        <div class="sm:col-span-4 space-y-1">
-          <label class="font-semibold text-stone-700 dark:text-stone-300 block">Chapter:</label>
-          <select id="chapterSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
-            <!-- Populated dynamically -->
-          </select>
-        </div>
-
-        <!-- Pacing & Reading Tone (3 cols) -->
-        <div class="sm:col-span-3 space-y-1">
-          <label class="font-semibold text-stone-700 dark:text-stone-300 block">Reading Tone & Pacing:</label>
-          <select id="pacingSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
-            <option value="natural" selected>Natural Cadence (1.0x)</option>
-            <option value="storyteller">Storyteller (0.95x, scene pauses)</option>
-            <option value="calm">Calm & Soothing (0.88x, gentle)</option>
-            <option value="brisk">Brisk & Efficient (1.15x speed)</option>
-            <option value="dramatic">Dramatic & Deep (0.92x, -5Hz)</option>
-            <option value="documentary">Authoritative Documentary (1.0x)</option>
-          </select>
-        </div>
-
-      </div>
-
-      <!-- Action Banner: Big Listen to Preview Button -->
-      <div class="bg-[#f7f5f0] dark:bg-[#272521] border border-[#e7e3da] dark:border-[#33302b] rounded-lg p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
-        <div class="text-xs text-stone-600 dark:text-stone-400">
-          <strong class="text-stone-900 dark:text-stone-100 font-semibold">Read-Along Immersion:</strong>
-          Click below to hear the narrator read with natural emotional inflection while each sentence highlights on the page in real time.
-        </div>
-        <div class="flex items-center space-x-2">
-          <button id="btnPlayPreview" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow-sm flex items-center space-x-2">
-            <i data-lucide="play" class="w-4 h-4 fill-white" id="btnPreviewIcon"></i>
-            <span id="btnPreviewText">Listen to Chapter Preview</span>
-          </button>
-        </div>
-      </div>
-
     </div>
 
     <!-- Full Audiobook Conversion Progress -->
@@ -175,7 +164,7 @@
       <div class="flex items-center justify-between text-xs">
         <div class="flex items-center space-x-2">
           <div class="w-4 h-4 border-2 border-stone-400 border-t-stone-900 dark:border-t-stone-100 rounded-full animate-spin"></div>
-          <span id="fullConversionStatusText" class="font-semibold text-stone-900 dark:text-stone-100">Synthesizing complete audiobook...</span>
+          <span id="fullConversionStatusText" class="font-semibold text-stone-900 dark:text-stone-100">Synthesizing audiobook according to preferences...</span>
         </div>
         <span id="fullConversionPercentText" class="font-mono font-bold text-stone-700 dark:text-stone-300">0%</span>
       </div>
@@ -248,138 +237,14 @@
 
     </div>
 
-    <!-- Export Audiobook Preferences Modal -->
-    <div id="modalExportAudiobook" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 transition-all">
-        
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 flex items-center justify-center text-xs font-bold shadow-sm">
-              <i data-lucide="sliders" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <h3 class="font-serif text-lg font-bold text-stone-900 dark:text-stone-100 leading-tight">Audiobook Preferences</h3>
-              <p class="text-[11px] text-stone-500 dark:text-stone-400">Choose single long audio, chapter playlist, or both</p>
-            </div>
-          </div>
-          <button id="btnCloseExportModal" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition">
-            <i data-lucide="x" class="w-4 h-4"></i>
-          </button>
-        </div>
-
-        <!-- Output Format Preference -->
-        <div class="space-y-2">
-          <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">Audio Format Preference</label>
-          
-          <div class="grid grid-cols-1 gap-2.5">
-            <!-- Option 1: Single Continuous Audio -->
-            <label class="format-pref-label flex items-start p-3 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 cursor-pointer transition bg-[#fbf9f5] dark:bg-[#272521]">
-              <input type="radio" name="formatPref" value="single" class="mt-1 text-stone-900 focus:ring-stone-800">
-              <div class="ml-3 flex-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                    <i data-lucide="music" class="w-3.5 h-3.5 text-stone-600 dark:text-stone-400"></i>
-                    Single Continuous Audiobook (.MP3)
-                  </span>
-                  <span class="text-[10px] bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">Seamless</span>
-                </div>
-                <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                  All chapters merged into one master MP3 file with embedded ID3 tags. Ideal for continuous listening without pauses between files.
-                </p>
-              </div>
-            </label>
-
-            <!-- Option 2: Chapter Playlist Bundle -->
-            <label class="format-pref-label flex items-start p-3 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 cursor-pointer transition bg-[#fbf9f5] dark:bg-[#272521]">
-              <input type="radio" name="formatPref" value="playlist" class="mt-1 text-stone-900 focus:ring-stone-800">
-              <div class="ml-3 flex-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                    <i data-lucide="list-music" class="w-3.5 h-3.5 text-stone-600 dark:text-stone-400"></i>
-                    Chapter Playlist Bundle (.ZIP with .M3U & .M3U8)
-                  </span>
-                  <span class="text-[10px] bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">Multi-Track</span>
-                </div>
-                <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                  Separate audio files per chapter plus M3U & M3U8 playlist files. Ideal for car stereos, VLC, mobile media players, and skipping chapters.
-                </p>
-              </div>
-            </label>
-
-            <!-- Option 3: Both (Selected by Default) -->
-            <label class="format-pref-label flex items-start p-3 rounded-xl border-2 border-stone-900 dark:border-stone-100 hover:border-stone-900 cursor-pointer transition bg-amber-50/50 dark:bg-stone-800/60">
-              <input type="radio" name="formatPref" value="both" checked class="mt-1 text-stone-900 focus:ring-stone-800">
-              <div class="ml-3 flex-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
-                    <i data-lucide="disc-3" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                    Complete Edition (Both Master File & Chapter Playlist)
-                  </span>
-                  <span class="text-[10px] bg-amber-200 dark:bg-amber-900/60 font-semibold px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-200">Recommended</span>
-                </div>
-                <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
-                  Generates both the unified master MP3 and the chapter playlist package so you have full flexibility.
-                </p>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- Chapter Scope / Selection -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">Chapters to Include</label>
-            <span id="exportChapterCountSummary" class="text-[11px] text-stone-500 dark:text-stone-400 font-medium">All Chapters</span>
-          </div>
-
-          <div class="flex items-center space-x-4 text-xs">
-            <label class="flex items-center space-x-1.5 cursor-pointer">
-              <input type="radio" name="chapterScope" value="all" checked class="text-stone-900">
-              <span class="text-stone-800 dark:text-stone-200 font-medium">All Chapters</span>
-            </label>
-            <label class="flex items-center space-x-1.5 cursor-pointer">
-              <input type="radio" name="chapterScope" value="custom" class="text-stone-900">
-              <span class="text-stone-800 dark:text-stone-200 font-medium">Select Specific Chapters</span>
-            </label>
-          </div>
-
-          <!-- Custom Chapter Checklist (Hidden unless "custom" is picked) -->
-          <div id="exportCustomChapterList" class="hidden mt-2 max-h-44 overflow-y-auto border border-stone-200 dark:border-stone-700 rounded-lg p-2.5 space-y-1.5 bg-[#fbf9f5] dark:bg-[#272521] text-xs">
-            <!-- Injected dynamically -->
-          </div>
-        </div>
-
-        <!-- Narrator & Tone Recap -->
-        <div class="p-2.5 rounded-lg bg-stone-100 dark:bg-stone-800/60 border border-stone-200 dark:border-stone-700 text-xs flex items-center justify-between">
-          <div class="flex items-center space-x-2 truncate">
-            <i data-lucide="mic" class="w-3.5 h-3.5 text-stone-500 dark:text-stone-400 flex-shrink-0"></i>
-            <span id="exportNarratorRecap" class="text-stone-700 dark:text-stone-300 truncate">Narrator: Andrew (US) &bull; Natural Cadence</span>
-          </div>
-          <span class="text-[10px] text-stone-500 dark:text-stone-400 flex-shrink-0">Zero Page-Number Artifacts</span>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end space-x-2 pt-2 border-t border-stone-200 dark:border-stone-800">
-          <button id="btnCancelExportModal" class="px-3.5 py-2 text-xs font-semibold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition">
-            Cancel
-          </button>
-          <button id="btnConfirmGenerateAudiobook" class="px-4 py-2 text-xs font-semibold bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 rounded-lg transition shadow flex items-center space-x-1.5">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-            <span>Generate Audiobook</span>
-          </button>
-        </div>
-
-      </div>
-    </div>
-
     <!-- THE BOOK PAGE (Editorial Layout with Real-Time Sentence Synchronization) -->
     <article class="book-page-canvas p-6 sm:p-12 space-y-8">
       
       <!-- Chapter Heading -->
       <div class="text-center max-w-xl mx-auto space-y-2 pb-6 border-b border-[#e7e3da] dark:border-[#33302b]">
-        <h2 id="chapterTitleHeading" class="font-serif text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Chapter 1</h2>
-        <p class="text-xs text-stone-500 dark:text-stone-400 font-sans uppercase tracking-widest" id="readingModeIndicator">Read-Along Mode &bull; Click any sentence to play from there</p>
+        <div id="chapterNumberBadge" class="text-[11px] font-sans uppercase tracking-widest text-amber-800 dark:text-amber-400 font-bold">Chapter 1</div>
+        <h2 id="chapterTitleHeading" class="font-serif text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">The Beginning</h2>
+        <p id="chapterStatsText" class="text-xs text-stone-500 dark:text-stone-400 font-sans">0 words &bull; ~0 min listen</p>
       </div>
 
       <!-- Book Prose Container (Sentences are injected here and highlighted during playback) -->
@@ -387,12 +252,253 @@
         <!-- Rendered dynamically as readable sentences -->
       </div>
 
+      <!-- Chapter Navigation Footer (Prev / Next Chapter) -->
+      <div id="chapterFooterNav" class="pt-8 border-t border-[#e7e3da] dark:border-[#33302b] flex items-center justify-between text-xs max-w-2xl mx-auto gap-2">
+        <button id="btnPrevChapter" class="px-3.5 py-2 rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-medium flex items-center space-x-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Previous Chapter (Shift + Left Arrow)">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          <span>Previous Chapter</span>
+        </button>
+
+        <div class="text-center">
+          <div id="chapterFooterCounter" class="font-semibold text-stone-700 dark:text-stone-300">Chapter 1 of 1</div>
+          <div class="text-[10px] text-stone-400 font-normal">Space to Play &bull; Shift + &larr;/&rarr; to switch</div>
+        </div>
+
+        <button id="btnNextChapter" class="px-3.5 py-2 rounded-lg border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-700 dark:text-stone-300 font-medium flex items-center space-x-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed" title="Next Chapter (Shift + Right Arrow)">
+          <span>Next Chapter</span>
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+
     </article>
 
   </main>
 
-  <!-- Sticky Bottom Audio Player Bar (Audible / Apple Podcasts Style) -->
-  <div id="stickyPlayerBar" class="fixed bottom-0 left-0 right-0 border-t shadow-lg py-3 px-4 z-50">
+  <!-- TABLE OF CONTENTS (Slide-Over Drawer) -->
+  <div id="drawerTOC" class="hidden fixed inset-0 z-50 overflow-hidden">
+    <!-- Backdrop -->
+    <div id="backdropTOC" class="drawer-backdrop fixed inset-0 opacity-100"></div>
+
+    <div class="fixed inset-y-0 right-0 max-w-md w-full flex">
+      <div class="drawer-panel w-full bg-white dark:bg-[#1a1815] border-l border-[#e7e3da] dark:border-[#33302b] flex flex-col shadow-2xl">
+        
+        <!-- Drawer Header -->
+        <div class="p-5 border-b border-[#e7e3da] dark:border-[#33302b] flex items-center justify-between">
+          <div class="space-y-0.5">
+            <h3 class="font-serif text-lg font-bold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+              <i data-lucide="book-open" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+              <span>Table of Contents</span>
+            </h3>
+            <p id="tocBookStats" class="text-xs text-stone-500 dark:text-stone-400">0 Chapters &bull; ~0 min total</p>
+          </div>
+          <button id="btnCloseTOC" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <!-- Chapter Filter Search Box -->
+        <div class="px-4 py-2.5 border-b border-[#e7e3da] dark:border-[#33302b] bg-stone-50/60 dark:bg-[#1f1d19]/60">
+          <div class="relative">
+            <i data-lucide="search" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"></i>
+            <input type="text" id="tocSearchInput" placeholder="Filter chapters by title or #..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-[#272521] border border-stone-200 dark:border-stone-700 rounded-lg outline-none focus:border-stone-800 dark:focus:border-stone-400 transition placeholder:text-stone-400 text-stone-800 dark:text-stone-200">
+          </div>
+        </div>
+
+        <!-- Chapters List -->
+        <div id="drawerTOCList" class="flex-1 overflow-y-auto p-3 space-y-1.5 text-xs">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Drawer Footer -->
+        <div class="p-4 border-t border-[#e7e3da] dark:border-[#33302b] bg-stone-50 dark:bg-[#1f1d19]">
+          <button id="btnTOCExportAudiobook" class="w-full bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 font-semibold text-xs py-2.5 rounded-lg transition shadow-sm flex items-center justify-center space-x-2">
+            <i data-lucide="headphones" class="w-3.5 h-3.5"></i>
+            <span>Export Full Audiobook</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- NARRATOR & READING TONE MODAL -->
+  <div id="modalNarrator" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 transition-all">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 flex items-center justify-center text-xs font-bold shadow-sm">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-serif text-lg font-bold text-stone-900 dark:text-stone-100 leading-tight">Narrator & Tone</h3>
+            <p class="text-[11px] text-stone-500 dark:text-stone-400">Select emotional voice, accent, and reading speed</p>
+          </div>
+        </div>
+        <button id="btnCloseNarratorModal" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Voice Selector -->
+      <div class="space-y-1.5 text-xs">
+        <div class="flex items-center justify-between">
+          <label class="font-semibold text-stone-700 dark:text-stone-300">Narrator Voice:</label>
+          <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Emotional Neural Audio</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <select id="modalVoiceSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 font-medium">
+            <!-- Populated dynamically -->
+          </select>
+          <button id="btnAuditionVoice" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 px-2.5 py-2 rounded-lg text-xs font-medium flex-shrink-0 flex items-center space-x-1" title="Audition voice sample">
+            <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Audition</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Pacing & Reading Tone -->
+      <div class="space-y-1.5 text-xs">
+        <label class="font-semibold text-stone-700 dark:text-stone-300 block">Reading Tone & Inflection:</label>
+        <select id="modalPacingSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 font-medium">
+          <option value="natural" selected>Natural Cadence (1.0x)</option>
+          <option value="storyteller">Storyteller (0.95x, expressive pauses)</option>
+          <option value="calm">Calm & Soothing (0.88x, gentle)</option>
+          <option value="brisk">Brisk & Efficient (1.15x speed)</option>
+          <option value="dramatic">Dramatic & Deep (0.92x, -5Hz)</option>
+          <option value="documentary">Authoritative Documentary (1.0x)</option>
+        </select>
+      </div>
+
+      <!-- Footer Action -->
+      <div class="flex items-center justify-end pt-2 border-t border-stone-200 dark:border-stone-800">
+        <button id="btnSaveNarrator" class="px-4 py-2 text-xs font-semibold bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 rounded-lg transition shadow">
+          Apply Narrator
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EXPORT AUDIOBOOK PREFERENCES MODAL -->
+  <div id="modalExportAudiobook" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 transition-all">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-stone-200 dark:border-stone-800">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 flex items-center justify-center text-xs font-bold shadow-sm">
+            <i data-lucide="sliders" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-serif text-lg font-bold text-stone-900 dark:text-stone-100 leading-tight">Audiobook Preferences</h3>
+            <p class="text-[11px] text-stone-500 dark:text-stone-400">Choose single long audio, chapter playlist, or both</p>
+          </div>
+        </div>
+        <button id="btnCloseExportModal" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Output Format Preference -->
+      <div class="space-y-2">
+        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">Audio Format Preference</label>
+        
+        <div class="grid grid-cols-1 gap-2.5">
+          <!-- Option 1: Single Continuous Audio -->
+          <label class="format-pref-label flex items-start p-3 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 cursor-pointer transition bg-[#fbf9f5] dark:bg-[#272521]">
+            <input type="radio" name="formatPref" value="single" class="mt-1 text-stone-900 focus:ring-stone-800">
+            <div class="ml-3 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                  <i data-lucide="music" class="w-3.5 h-3.5 text-stone-600 dark:text-stone-400"></i>
+                  Single Continuous Audiobook (.MP3)
+                </span>
+                <span class="text-[10px] bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">Seamless</span>
+              </div>
+              <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                All chapters merged into one master MP3 file with embedded ID3 tags. Ideal for continuous listening without pauses between files.
+              </p>
+            </div>
+          </label>
+
+          <!-- Option 2: Chapter Playlist Bundle -->
+          <label class="format-pref-label flex items-start p-3 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-500 cursor-pointer transition bg-[#fbf9f5] dark:bg-[#272521]">
+            <input type="radio" name="formatPref" value="playlist" class="mt-1 text-stone-900 focus:ring-stone-800">
+            <div class="ml-3 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                  <i data-lucide="list-music" class="w-3.5 h-3.5 text-stone-600 dark:text-stone-400"></i>
+                  Chapter Playlist Bundle (.ZIP with .M3U & .M3U8)
+                </span>
+                <span class="text-[10px] bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded text-stone-700 dark:text-stone-300">Multi-Track</span>
+              </div>
+              <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                Separate audio files per chapter plus M3U & M3U8 playlist files. Ideal for car stereos, VLC, mobile media players, and skipping chapters.
+              </p>
+            </div>
+          </label>
+
+          <!-- Option 3: Both (Selected by Default) -->
+          <label class="format-pref-label flex items-start p-3 rounded-xl border-2 border-stone-900 dark:border-stone-100 hover:border-stone-900 cursor-pointer transition bg-amber-50/50 dark:bg-stone-800/60">
+            <input type="radio" name="formatPref" value="both" checked class="mt-1 text-stone-900 focus:ring-stone-800">
+            <div class="ml-3 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-900 dark:text-stone-100 flex items-center gap-1.5">
+                  <i data-lucide="disc-3" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                  Complete Edition (Both Master File & Chapter Playlist)
+                </span>
+                <span class="text-[10px] bg-amber-200 dark:bg-amber-900/60 font-semibold px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-200">Recommended</span>
+              </div>
+              <p class="text-[11px] text-stone-500 dark:text-stone-400 mt-0.5">
+                Generates both the unified master MP3 and the chapter playlist package so you have full flexibility.
+              </p>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Chapter Scope / Selection -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">Chapters to Include</label>
+          <span id="exportChapterCountSummary" class="text-[11px] text-stone-500 dark:text-stone-400 font-medium">All Chapters</span>
+        </div>
+
+        <div class="flex items-center space-x-4 text-xs">
+          <label class="flex items-center space-x-1.5 cursor-pointer">
+            <input type="radio" name="chapterScope" value="all" checked class="text-stone-900">
+            <span class="text-stone-800 dark:text-stone-200 font-medium">All Chapters</span>
+          </label>
+          <label class="flex items-center space-x-1.5 cursor-pointer">
+            <input type="radio" name="chapterScope" value="custom" class="text-stone-900">
+            <span class="text-stone-800 dark:text-stone-200 font-medium">Select Specific Chapters</span>
+          </label>
+        </div>
+
+        <!-- Custom Chapter Checklist -->
+        <div id="exportCustomChapterList" class="hidden mt-2 max-h-44 overflow-y-auto border border-stone-200 dark:border-stone-700 rounded-lg p-2.5 space-y-1.5 bg-[#fbf9f5] dark:bg-[#272521] text-xs">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end space-x-2 pt-2 border-t border-stone-200 dark:border-stone-800">
+        <button id="btnCancelExportModal" class="px-3.5 py-2 text-xs font-semibold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition">
+          Cancel
+        </button>
+        <button id="btnConfirmGenerateAudiobook" class="px-4 py-2 text-xs font-semibold bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 rounded-lg transition shadow flex items-center space-x-1.5">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>Generate Audiobook</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STICKY BOTTOM AUDIO PLAYER BAR -->
+  <div id="stickyPlayerBar" class="fixed bottom-0 left-0 right-0 border-t shadow-lg py-3 px-4 z-40">
     <audio id="audioPlayer" class="hidden"></audio>
     <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
       
@@ -402,8 +508,8 @@
           <i data-lucide="headphones" class="w-4 h-4"></i>
         </div>
         <div class="truncate">
-          <div id="playerChapterTitle" class="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">Audiobook Player Ready</div>
-          <div id="playerNarratorInfo" class="text-[11px] text-stone-500 dark:text-stone-400 truncate">Select a voice and tone</div>
+          <div id="playerChapterTitle" class="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">Audiobook Ready</div>
+          <div id="playerNarratorInfo" class="text-[11px] text-stone-500 dark:text-stone-400 truncate">⭐ Andrew &bull; Natural</div>
         </div>
       </div>
 
@@ -428,18 +534,19 @@
         </div>
       </div>
 
-      <!-- Action & Direct Download -->
+      <!-- Action & Speed Selection -->
       <div class="flex items-center justify-end space-x-2 w-full sm:w-1/3">
         <select id="playerSpeedSelect" class="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs rounded-md px-2 py-1 outline-none">
           <option value="0.8">0.8x</option>
           <option value="1.0" selected>1.0x</option>
           <option value="1.25">1.25x</option>
           <option value="1.5">1.5x</option>
+          <option value="2.0">2.0x</option>
         </select>
-        <a id="btnPlayerDownloadMp3" href="#" download class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center space-x-1" title="Download current audio snippet">
+        <button id="btnPlayerExport" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center space-x-1" title="Download Audiobook">
           <i data-lucide="download" class="w-3.5 h-3.5"></i>
-          <span>Save MP3</span>
-        </a>
+          <span>Save</span>
+        </button>
       </div>
 
     </div>

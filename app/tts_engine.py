@@ -36,12 +36,6 @@ def prepare_natural_text(text: str, title: Optional[str] = None) -> str:
     paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
     cleaned_body = "\n\n".join(paragraphs)
 
-    if title:
-        clean_title = title.strip()
-        if not clean_title.endswith((".", "!", "?")):
-            clean_title += "."
-        return f"{clean_title}\n\n{cleaned_body}"
-
     return cleaned_body
 
 
@@ -106,7 +100,7 @@ class TTSEngine:
         else:
             preview_text = text
 
-        cache_key = hashlib.md5(f"preview:sync:v1:{voice}:{rate}:{pitch}:{preview_text}:{title}".encode("utf-8")).hexdigest()
+        cache_key = hashlib.md5(f"preview:sync:v2:{voice}:{rate}:{pitch}:{preview_text}".encode("utf-8")).hexdigest()
         output_file = os.path.join(self.cache_dir, f"preview_{cache_key}.mp3")
         meta_file = os.path.join(self.cache_dir, f"preview_{cache_key}.json")
 

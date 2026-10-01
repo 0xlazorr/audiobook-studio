@@ -1,17 +1,17 @@
 /**
- * Audiobook Studio - Production Read-Along Controller
- * Clean, sample-free, multi-format document reader with tone presets.
+ * Audiobook Studio - Production Read-Along & Playback Controller
+ * Streamlined editorial UI with TOC drawer, unified playback, and instant chapter navigation.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   // Tone Presets Configuration
   const TONE_PRESETS = {
-    natural: { rate: "+0%", pitch: "+0Hz", label: "Natural Cadence" },
-    storyteller: { rate: "-5%", pitch: "+0Hz", label: "Storyteller Pace" },
-    calm: { rate: "-12%", pitch: "-2Hz", label: "Calm & Soothing" },
-    brisk: { rate: "+15%", pitch: "+0Hz", label: "Brisk & Efficient" },
-    dramatic: { rate: "-8%", pitch: "-5Hz", label: "Dramatic & Deep" },
-    documentary: { rate: "+0%", pitch: "-2Hz", label: "Authoritative Documentary" }
+    natural: { rate: "+0%", pitch: "+0Hz", label: "Natural Cadence (1.0x)" },
+    storyteller: { rate: "-5%", pitch: "+0Hz", label: "Storyteller Pace (0.95x)" },
+    calm: { rate: "-12%", pitch: "-2Hz", label: "Calm & Soothing (0.88x)" },
+    brisk: { rate: "+15%", pitch: "+0Hz", label: "Brisk & Efficient (1.15x)" },
+    dramatic: { rate: "-8%", pitch: "-5Hz", label: "Dramatic & Deep (0.92x)" },
+    documentary: { rate: "+0%", pitch: "-2Hz", label: "Documentary (1.0x)" }
   };
 
   // Application State
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     isPlaying: false
   };
 
-  // DOM Elements
+  // DOM Elements - Navigation & Header
   const btnToggleTheme = document.getElementById("btnToggleTheme");
   const btnUploadNew = document.getElementById("btnUploadNew");
   const uploadSection = document.getElementById("uploadSection");
@@ -38,22 +38,55 @@ document.addEventListener("DOMContentLoaded", () => {
   const dropzonePrompt = document.getElementById("dropzonePrompt");
   const uploadSpinner = document.getElementById("uploadSpinner");
 
-  const bookTitleDisplay = document.getElementById("bookTitleDisplay");
-  const bookAuthorDisplay = document.getElementById("bookAuthorDisplay");
-  const bookStatsDisplay = document.getElementById("bookStatsDisplay");
-  const voiceSelect = document.getElementById("voiceSelect");
-  const btnTestVoice = document.getElementById("btnTestVoice");
-  const chapterSelect = document.getElementById("chapterSelect");
-  const pacingSelect = document.getElementById("pacingSelect");
+  const headerBookContainer = document.getElementById("headerBookContainer");
+  const headerBookTitle = document.getElementById("headerBookTitle");
+  const headerBookAuthor = document.getElementById("headerBookAuthor");
+  const headerBookActions = document.getElementById("headerBookActions");
+  const btnOpenTOC = document.getElementById("btnOpenTOC");
+  const btnOpenTOCText = document.getElementById("btnOpenTOCText");
+  const btnOpenNarratorModal = document.getElementById("btnOpenNarratorModal");
+  const btnHeaderNarratorText = document.getElementById("btnHeaderNarratorText");
+  const btnOpenExportModal = document.getElementById("btnOpenExportModal");
 
-  const btnPlayPreview = document.getElementById("btnPlayPreview");
-  const btnPreviewIcon = document.getElementById("btnPreviewIcon");
-  const btnPreviewText = document.getElementById("btnPreviewText");
+  // Subheader & Canvas
+  const barChapterName = document.getElementById("barChapterName");
+  const barNarratorName = document.getElementById("barNarratorName");
+  const btnBarTOC = document.getElementById("btnBarTOC");
+  const btnBarNarrator = document.getElementById("btnBarNarrator");
+  const btnBarExport = document.getElementById("btnBarExport");
+  const btnInlinePlay = document.getElementById("btnInlinePlay");
+  const inlinePlayIcon = document.getElementById("inlinePlayIcon");
+  const inlinePlayText = document.getElementById("inlinePlayText");
+  const btnFontSmaller = document.getElementById("btnFontSmaller");
+  const btnFontLarger = document.getElementById("btnFontLarger");
 
+  const chapterNumberBadge = document.getElementById("chapterNumberBadge");
   const chapterTitleHeading = document.getElementById("chapterTitleHeading");
+  const chapterStatsText = document.getElementById("chapterStatsText");
   const bookProseContainer = document.getElementById("bookProseContainer");
 
-  // Audio Player Bar Elements
+  const btnPrevChapter = document.getElementById("btnPrevChapter");
+  const btnNextChapter = document.getElementById("btnNextChapter");
+  const chapterFooterCounter = document.getElementById("chapterFooterCounter");
+
+  // Table of Contents Drawer
+  const drawerTOC = document.getElementById("drawerTOC");
+  const backdropTOC = document.getElementById("backdropTOC");
+  const btnCloseTOC = document.getElementById("btnCloseTOC");
+  const drawerTOCList = document.getElementById("drawerTOCList");
+  const tocSearchInput = document.getElementById("tocSearchInput");
+  const tocBookStats = document.getElementById("tocBookStats");
+  const btnTOCExportAudiobook = document.getElementById("btnTOCExportAudiobook");
+
+  // Narrator & Tone Modal
+  const modalNarrator = document.getElementById("modalNarrator");
+  const btnCloseNarratorModal = document.getElementById("btnCloseNarratorModal");
+  const modalVoiceSelect = document.getElementById("modalVoiceSelect");
+  const modalPacingSelect = document.getElementById("modalPacingSelect");
+  const btnAuditionVoice = document.getElementById("btnAuditionVoice");
+  const btnSaveNarrator = document.getElementById("btnSaveNarrator");
+
+  // Bottom Audio Player Bar Elements
   const audioPlayer = document.getElementById("audioPlayer");
   const playerChapterTitle = document.getElementById("playerChapterTitle");
   const playerNarratorInfo = document.getElementById("playerNarratorInfo");
@@ -65,11 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const playerScrubber = document.getElementById("playerScrubber");
   const playerDuration = document.getElementById("playerDuration");
   const playerSpeedSelect = document.getElementById("playerSpeedSelect");
-  const btnPlayerDownloadMp3 = document.getElementById("btnPlayerDownloadMp3");
+  const btnPlayerExport = document.getElementById("btnPlayerExport");
 
   // Full Audiobook Conversion & Export Modal
-  const btnFullAudiobook = document.getElementById("btnFullAudiobook");
-  const btnOpenExportModal = document.getElementById("btnOpenExportModal") || btnFullAudiobook;
   const modalExportAudiobook = document.getElementById("modalExportAudiobook");
   const btnCloseExportModal = document.getElementById("btnCloseExportModal");
   const btnCancelExportModal = document.getElementById("btnCancelExportModal");
@@ -77,11 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnReopenExportModal = document.getElementById("btnReopenExportModal");
   const exportCustomChapterList = document.getElementById("exportCustomChapterList");
   const exportChapterCountSummary = document.getElementById("exportChapterCountSummary");
-  const exportNarratorRecap = document.getElementById("exportNarratorRecap");
-  const downloadCardFormatNotice = document.getElementById("downloadCardFormatNotice");
-  const individualChaptersContainer = document.getElementById("individualChaptersContainer");
-  const individualChaptersCount = document.getElementById("individualChaptersCount");
-  const individualChaptersList = document.getElementById("individualChaptersList");
 
   const fullAudiobookProgressCard = document.getElementById("fullAudiobookProgressCard");
   const fullConversionStatusText = document.getElementById("fullConversionStatusText");
@@ -90,6 +116,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const fullAudiobookDownloadCard = document.getElementById("fullAudiobookDownloadCard");
   const btnDownloadMasterMp3 = document.getElementById("btnDownloadMasterMp3");
   const btnDownloadZipFile = document.getElementById("btnDownloadZipFile");
+  const downloadCardFormatNotice = document.getElementById("downloadCardFormatNotice");
+  const individualChaptersContainer = document.getElementById("individualChaptersContainer");
+  const individualChaptersCount = document.getElementById("individualChaptersCount");
+  const individualChaptersList = document.getElementById("individualChaptersList");
 
   function refreshLucide() {
     if (window.lucide) {
@@ -120,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------------------------------------------
-  // 1. Load Voices & Setup Controls
+  // 1. Initialize Voices & Narrator Settings
   // -------------------------------------------------------------
   async function init() {
     initTheme();
@@ -128,14 +158,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/voices");
       const data = await res.json();
       state.curatedVoices = data.curated || [];
-      populateVoiceDropdown();
+      populateVoiceDropdowns();
     } catch (e) {
       console.error("Initialization error:", e);
     }
   }
 
-  function populateVoiceDropdown() {
-    voiceSelect.innerHTML = "";
+  function populateVoiceDropdowns() {
+    modalVoiceSelect.innerHTML = "";
     state.curatedVoices.forEach((v) => {
       const opt = document.createElement("option");
       opt.value = v.id;
@@ -144,35 +174,81 @@ document.addEventListener("DOMContentLoaded", () => {
       if (v.id === state.selectedVoice) {
         opt.selected = true;
       }
-      voiceSelect.appendChild(opt);
+      modalVoiceSelect.appendChild(opt);
     });
 
-    voiceSelect.addEventListener("change", (e) => {
-      state.selectedVoice = e.target.value;
-      updateNarratorInfo();
-      state.activeAudioUrl = null;
-    });
-
-    pacingSelect.addEventListener("change", (e) => {
-      state.selectedTone = e.target.value;
-      const preset = TONE_PRESETS[e.target.value] || TONE_PRESETS.natural;
-      state.rate = preset.rate;
-      state.pitch = preset.pitch;
-      updateNarratorInfo();
-      state.activeAudioUrl = null;
-    });
+    updateNarratorLabels();
   }
 
-  function updateNarratorInfo() {
+  function updateNarratorLabels() {
     const v = state.curatedVoices.find((x) => x.id === state.selectedVoice) || state.curatedVoices[0];
-    const toneInfo = TONE_PRESETS[state.selectedTone]?.label || "Natural";
+    const toneInfo = TONE_PRESETS[state.selectedTone]?.label.split(" ")[0] || "Natural";
     if (v) {
-      playerNarratorInfo.textContent = `Narrated by ${v.name} (${v.accent}) &bull; ${toneInfo}`;
+      const shortName = `⭐ ${v.name.split(" ")[0]} (${v.accent.split(" ")[0]})`;
+      if (btnHeaderNarratorText) btnHeaderNarratorText.textContent = `${shortName} · ${toneInfo}`;
+      if (barNarratorName) barNarratorName.textContent = `${shortName} · ${toneInfo}`;
+      if (playerNarratorInfo) playerNarratorInfo.textContent = `Narrated by ${v.name} (${v.accent}) • ${toneInfo}`;
     }
   }
 
+  // Narrator Modal Events
+  function openNarratorModal() {
+    modalVoiceSelect.value = state.selectedVoice;
+    modalPacingSelect.value = state.selectedTone;
+    modalNarrator.classList.remove("hidden");
+    refreshLucide();
+  }
+
+  function closeNarratorModal() {
+    modalNarrator.classList.add("hidden");
+  }
+
+  if (btnOpenNarratorModal) btnOpenNarratorModal.addEventListener("click", openNarratorModal);
+  if (btnBarNarrator) btnBarNarrator.addEventListener("click", openNarratorModal);
+  if (btnCloseNarratorModal) btnCloseNarratorModal.addEventListener("click", closeNarratorModal);
+
+  if (btnSaveNarrator) {
+    btnSaveNarrator.addEventListener("click", () => {
+      state.selectedVoice = modalVoiceSelect.value;
+      state.selectedTone = modalPacingSelect.value;
+      const preset = TONE_PRESETS[state.selectedTone] || TONE_PRESETS.natural;
+      state.rate = preset.rate;
+      state.pitch = preset.pitch;
+      state.activeAudioUrl = null;
+      updateNarratorLabels();
+      closeNarratorModal();
+    });
+  }
+
+  // Audition Voice Sample
+  if (btnAuditionVoice) {
+    btnAuditionVoice.addEventListener("click", async () => {
+      const voiceId = modalVoiceSelect.value;
+      const v = state.curatedVoices.find((x) => x.id === voiceId);
+      const sampleText = v ? v.sample : "Welcome to Audiobook Studio. Listen to your books with natural human expression.";
+
+      btnAuditionVoice.disabled = true;
+      try {
+        const res = await fetch("/api/preview-voice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ voice: voiceId, sample_text: sampleText })
+        });
+        if (!res.ok) throw new Error("Audition failed");
+        const d = await res.json();
+        audioPlayer.src = d.audio_url;
+        audioPlayer.play();
+        setPlaybackState(true);
+      } catch (err) {
+        alert("Audition error: " + err.message);
+      } finally {
+        btnAuditionVoice.disabled = false;
+      }
+    });
+  }
+
   // -------------------------------------------------------------
-  // 2. Render Uploaded Book & Chapters
+  // 2. Render Uploaded Book & Setup Navigation
   // -------------------------------------------------------------
   function renderBook(book) {
     state.bookData = book;
@@ -180,265 +256,390 @@ document.addEventListener("DOMContentLoaded", () => {
     state.activeAudioUrl = null;
     state.sentences = [];
 
-    // Switch view from upload to reader
+    // Switch view to reader
     uploadSection.classList.add("hidden");
     readerSection.classList.remove("hidden");
 
-    bookTitleDisplay.textContent = book.title;
-    bookAuthorDisplay.innerHTML = `By ${book.author || "Unknown"} &bull; <span id="bookStatsDisplay">${book.chapters.length} Chapters &bull; ${Number(book.total_words).toLocaleString()} Words</span>`;
+    // Header Book Info
+    headerBookContainer.classList.remove("hidden");
+    headerBookContainer.classList.add("flex");
+    headerBookActions.classList.remove("hidden");
+    headerBookActions.classList.add("flex");
 
-    // Populate Chapter dropdown
-    chapterSelect.innerHTML = "";
-    book.chapters.forEach((ch) => {
-      const opt = document.createElement("option");
-      opt.value = ch.index;
-      opt.textContent = `${ch.title} (${ch.word_count} words)`;
-      if (ch.index === state.selectedChapterIndex) {
-        opt.selected = true;
-      }
-      chapterSelect.appendChild(opt);
-    });
+    headerBookTitle.textContent = book.title;
+    headerBookAuthor.textContent = book.author ? `• by ${book.author}` : "";
 
-    chapterSelect.onchange = (e) => {
-      state.selectedChapterIndex = parseInt(e.target.value, 10);
-      state.activeAudioUrl = null;
-      renderCurrentChapterText();
-    };
+    // TOC buttons
+    btnOpenTOCText.textContent = `Chapters (${book.chapters.length})`;
 
-    renderCurrentChapterText();
-    updateNarratorInfo();
+    // Load first chapter
+    renderCurrentChapter();
+    updateNarratorLabels();
     refreshLucide();
   }
 
-  // -------------------------------------------------------------
-  // 3. Render Readable Text Page with Clickable Sentences
-  // -------------------------------------------------------------
-  function renderCurrentChapterText() {
+  function switchChapter(newIndex) {
     if (!state.bookData) return;
-    const ch = state.bookData.chapters.find((c) => c.index === state.selectedChapterIndex) || state.bookData.chapters[0];
-    if (!ch) return;
+    const targetChapter = state.bookData.chapters.find((ch) => ch.index === newIndex);
+    if (!targetChapter) return;
 
-    chapterTitleHeading.textContent = ch.title;
-    playerChapterTitle.textContent = ch.title;
+    // Pause current audio
+    if (state.isPlaying) {
+      audioPlayer.pause();
+      setPlaybackState(false);
+    }
 
+    state.selectedChapterIndex = newIndex;
+    state.activeAudioUrl = null;
     state.sentences = [];
     state.currentSentenceIndex = -1;
 
-    const rawParagraphs = ch.content.split("\n\n").filter(Boolean);
+    renderCurrentChapter();
+
+    // Scroll smoothly to top of book canvas
+    readerSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderCurrentChapter() {
+    if (!state.bookData) return;
+    const chapter = state.bookData.chapters.find((ch) => ch.index === state.selectedChapterIndex) || state.bookData.chapters[0];
+    if (!chapter) return;
+
+    const totalChapters = state.bookData.chapters.length;
+
+    // Subheader & Badges
+    barChapterName.textContent = chapter.title;
+    chapterNumberBadge.textContent = `CHAPTER ${chapter.index}`;
+    chapterTitleHeading.textContent = chapter.title;
+    chapterStatsText.textContent = `${chapter.word_count.toLocaleString()} words • ~${chapter.duration_min} min listen`;
+
+    // Footer Nav
+    chapterFooterCounter.textContent = `Chapter ${chapter.index} of ${totalChapters}`;
+    btnPrevChapter.disabled = chapter.index <= 1;
+    btnNextChapter.disabled = chapter.index >= totalChapters;
+
+    // Reset Play Button
+    setPlaybackState(false);
+    inlinePlayText.textContent = `Listen to Chapter ${chapter.index}`;
+    playerChapterTitle.textContent = `${chapter.title} (Chapter ${chapter.index})`;
+
+    // Render Prose
+    renderProseText(chapter.content);
+    refreshLucide();
+  }
+
+  function renderProseText(content) {
     bookProseContainer.innerHTML = "";
+    if (!content) {
+      bookProseContainer.innerHTML = "<p class='italic text-stone-400'>No text found in this chapter.</p>";
+      return;
+    }
 
-    rawParagraphs.forEach((paraText, pIdx) => {
-      const p = document.createElement("p");
-      p.className = "mb-6 leading-relaxed";
+    const paragraphs = content.split("\n\n");
+    let globalSentenceIndex = 0;
 
-      const sentences = paraText.match(/[^.!?]+[.!?]+(\s+|$)|[^.!?]+$/g) || [paraText];
+    paragraphs.forEach((paraText) => {
+      const trimmed = paraText.trim();
+      if (!trimmed) return;
 
-      sentences.forEach((sText, sIdx) => {
+      const pElem = document.createElement("p");
+      const sentenceRegex = /[^.!?]+[.!?]+["']?|[^.!?]+$/g;
+      const matches = trimmed.match(sentenceRegex) || [trimmed];
+
+      matches.forEach((sentenceText) => {
         const span = document.createElement("span");
         span.className = "reader-sentence";
-        span.textContent = sText;
-        span.id = `sent_${pIdx}_${sIdx}`;
-        span.title = "Click to jump playback here";
+        span.id = `sentence-${globalSentenceIndex}`;
+        span.setAttribute("data-index", globalSentenceIndex);
+        span.textContent = sentenceText + " ";
 
+        const curIdx = globalSentenceIndex;
         span.addEventListener("click", () => {
-          seekToSentenceSpan(span);
+          onSentenceClicked(curIdx);
         });
 
-        p.appendChild(span);
+        pElem.appendChild(span);
+        globalSentenceIndex++;
       });
 
-      bookProseContainer.appendChild(p);
+      bookProseContainer.appendChild(pElem);
     });
   }
 
   // -------------------------------------------------------------
-  // 4. Generate & Play Audio Preview with Sentence Synchronization
+  // Font Size Typography Controls
   // -------------------------------------------------------------
-  btnPlayPreview.addEventListener("click", async () => {
+  let currentFontSize = parseFloat(localStorage.getItem("audiobook_fontSize")) || 1.18;
+  function applyFontSize(size) {
+    currentFontSize = Math.max(0.9, Math.min(1.65, size));
+    localStorage.setItem("audiobook_fontSize", currentFontSize);
+    if (bookProseContainer) {
+      bookProseContainer.style.fontSize = `${currentFontSize}rem`;
+    }
+  }
+  applyFontSize(currentFontSize);
+
+  if (btnFontSmaller) {
+    btnFontSmaller.addEventListener("click", () => applyFontSize(currentFontSize - 0.08));
+  }
+  if (btnFontLarger) {
+    btnFontLarger.addEventListener("click", () => applyFontSize(currentFontSize + 0.08));
+  }
+
+  // -------------------------------------------------------------
+  // 3. Table of Contents (TOC Drawer)
+  // -------------------------------------------------------------
+  function openTOC() {
+    if (!state.bookData) return;
+    if (tocSearchInput) tocSearchInput.value = "";
+    renderTOCDrawerList("");
+    drawerTOC.classList.remove("hidden");
+    refreshLucide();
+    if (tocSearchInput) {
+      setTimeout(() => tocSearchInput.focus(), 120);
+    }
+  }
+
+  function closeTOC() {
+    drawerTOC.classList.add("hidden");
+  }
+
+  function renderTOCDrawerList(filter = "") {
+    drawerTOCList.innerHTML = "";
     if (!state.bookData) return;
 
-    if (state.activeAudioUrl && audioPlayer.src.includes(state.activeAudioUrl)) {
-      if (audioPlayer.paused) {
-        audioPlayer.play();
-        setPlaybackState(true);
-      } else {
-        audioPlayer.pause();
-        setPlaybackState(false);
-      }
+    tocBookStats.textContent = `${state.bookData.chapters.length} Chapters • ~${state.bookData.total_duration_min} min total`;
+
+    const q = (filter || "").trim().toLowerCase();
+    const matching = state.bookData.chapters.filter((ch) => {
+      if (!q) return true;
+      return (
+        ch.title.toLowerCase().includes(q) ||
+        String(ch.index) === q ||
+        `chapter ${ch.index}`.includes(q)
+      );
+    });
+
+    if (matching.length === 0) {
+      drawerTOCList.innerHTML = `<div class="p-6 text-center text-xs text-stone-400">No chapters match "${filter}"</div>`;
       return;
     }
 
-    btnPlayPreview.disabled = true;
-    btnPreviewIcon.setAttribute("data-lucide", "loader-2");
-    btnPreviewIcon.classList.add("animate-spin");
-    btnPreviewText.textContent = "Synthesizing Preview...";
+    matching.forEach((ch) => {
+      const card = document.createElement("div");
+      const isActive = ch.index === state.selectedChapterIndex;
+      card.className = `toc-chapter-item p-3 rounded-xl border border-stone-200 dark:border-stone-800 cursor-pointer flex items-center justify-between gap-3 ${
+        isActive ? "is-active" : "bg-white dark:bg-[#201e1a]"
+      }`;
+      card.innerHTML = `
+        <div class="flex items-center space-x-3 truncate">
+          <span class="w-6 h-6 rounded-md font-mono text-[11px] font-bold flex items-center justify-center flex-shrink-0 ${
+            isActive ? "bg-amber-600 text-white" : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300"
+          }">${ch.index}</span>
+          <div class="truncate">
+            <div class="font-medium text-stone-900 dark:text-stone-100 truncate">${ch.title}</div>
+            <div class="text-[10px] text-stone-400 font-sans">${ch.word_count.toLocaleString()} words · ~${ch.duration_min} min</div>
+          </div>
+        </div>
+        ${isActive ? '<span class="text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 rounded-full flex-shrink-0">Reading</span>' : ''}
+      `;
+
+      card.addEventListener("click", () => {
+        closeTOC();
+        switchChapter(ch.index);
+      });
+
+      drawerTOCList.appendChild(card);
+    });
+  }
+
+  if (tocSearchInput) {
+    tocSearchInput.addEventListener("input", (e) => {
+      renderTOCDrawerList(e.target.value);
+    });
+  }
+
+  if (btnOpenTOC) btnOpenTOC.addEventListener("click", openTOC);
+  if (btnBarTOC) btnBarTOC.addEventListener("click", openTOC);
+  if (btnCloseTOC) btnCloseTOC.addEventListener("click", closeTOC);
+  if (backdropTOC) backdropTOC.addEventListener("click", closeTOC);
+
+  if (btnTOCExportAudiobook) {
+    btnTOCExportAudiobook.addEventListener("click", () => {
+      closeTOC();
+      openExportModal();
+    });
+  }
+
+  // Chapter Footer Navigation
+  if (btnNextChapter) {
+    btnNextChapter.addEventListener("click", () => {
+      if (state.bookData && state.selectedChapterIndex < state.bookData.chapters.length) {
+        switchChapter(state.selectedChapterIndex + 1);
+      }
+    });
+  }
+
+  if (btnPrevChapter) {
+    btnPrevChapter.addEventListener("click", () => {
+      if (state.bookData && state.selectedChapterIndex > 1) {
+        switchChapter(state.selectedChapterIndex - 1);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // 4. Audio Playback, Sync & Read-Along
+  // -------------------------------------------------------------
+  function setPlaybackState(playing) {
+    state.isPlaying = playing;
+
+    // Update Inline Play Button
+    if (inlinePlayIcon) {
+      inlinePlayIcon.setAttribute("data-lucide", playing ? "pause" : "play");
+    }
+    if (inlinePlayText) {
+      inlinePlayText.textContent = playing ? "Pause Chapter" : `Listen to Chapter ${state.selectedChapterIndex}`;
+    }
+
+    // Update Bottom Player Play Button
+    if (playerPlayPauseIcon) {
+      playerPlayPauseIcon.setAttribute("data-lucide", playing ? "pause" : "play");
+    }
+
     refreshLucide();
+  }
+
+  async function togglePlayChapter() {
+    if (state.isPlaying) {
+      audioPlayer.pause();
+      setPlaybackState(false);
+      return;
+    }
+
+    // If audio is already loaded, resume
+    if (state.activeAudioUrl && audioPlayer.src.includes(state.activeAudioUrl)) {
+      audioPlayer.play();
+      setPlaybackState(true);
+      return;
+    }
+
+    // Otherwise, generate audio for current chapter
+    inlinePlayText.textContent = "Synthesizing Audio...";
+    btnInlinePlay.disabled = true;
 
     try {
-      const ch = state.bookData.chapters.find((c) => c.index === state.selectedChapterIndex) || state.bookData.chapters[0];
       const res = await fetch("/api/preview-chapter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           book_id: state.bookData.book_id,
-          chapter_index: ch.index,
+          chapter_index: state.selectedChapterIndex,
           voice: state.selectedVoice,
           rate: state.rate,
           pitch: state.pitch
         })
       });
 
-      if (!res.ok) throw new Error("Preview generation failed");
+      if (!res.ok) throw new Error("Audio generation failed");
       const data = await res.json();
 
       state.activeAudioUrl = data.audio_url;
       state.sentences = data.sentences || [];
+      state.currentSentenceIndex = -1;
 
-      btnPlayerDownloadMp3.href = data.audio_url;
       audioPlayer.src = data.audio_url;
-      audioPlayer.play().then(() => {
-        setPlaybackState(true);
-      }).catch((err) => {
-        console.warn("Autoplay notice:", err);
-      });
-
-      mapTimestampsToSpans();
+      playerChapterTitle.textContent = `${data.chapter_title} (Chapter ${state.selectedChapterIndex})`;
+      audioPlayer.play();
+      setPlaybackState(true);
 
     } catch (e) {
-      alert("Error generating preview: " + e.message);
+      alert("Error: " + e.message);
+      setPlaybackState(false);
     } finally {
-      btnPlayPreview.disabled = false;
-      btnPreviewIcon.classList.remove("animate-spin");
-      refreshLucide();
-    }
-  });
-
-  function mapTimestampsToSpans() {
-    if (!state.sentences || state.sentences.length === 0) return;
-
-    bookProseContainer.innerHTML = "";
-
-    let currentP = document.createElement("p");
-    currentP.className = "mb-6 leading-relaxed";
-
-    const firstCue = state.sentences[0];
-    const startIndex = (firstCue && firstCue.text.toLowerCase().includes("chapter")) ? 1 : 0;
-
-    for (let i = startIndex; i < state.sentences.length; i++) {
-      const cue = state.sentences[i];
-      const span = document.createElement("span");
-      span.className = "reader-sentence";
-      span.textContent = cue.text + " ";
-      span.dataset.start = cue.start;
-      span.dataset.end = cue.end;
-      span.id = `cue_${i}`;
-      span.title = `Click to play from ${formatTime(cue.start)}`;
-
-      span.addEventListener("click", () => {
-        seekToSentenceSpan(span);
-      });
-
-      currentP.appendChild(span);
-
-      if ((i > startIndex && (i - startIndex) % 3 === 0) && i < state.sentences.length - 1) {
-        bookProseContainer.appendChild(currentP);
-        currentP = document.createElement("p");
-        currentP.className = "mb-6 leading-relaxed";
-      }
-    }
-
-    if (currentP.childNodes.length > 0) {
-      bookProseContainer.appendChild(currentP);
+      btnInlinePlay.disabled = false;
     }
   }
 
-  function seekToSentenceSpan(span) {
-    const start = parseFloat(span.dataset.start);
-    if (!isNaN(start) && audioPlayer.duration) {
-      audioPlayer.currentTime = start;
-      if (audioPlayer.paused) {
+  if (btnInlinePlay) btnInlinePlay.addEventListener("click", togglePlayChapter);
+  if (btnPlayerPlayPause) btnPlayerPlayPause.addEventListener("click", togglePlayChapter);
+
+  function onSentenceClicked(sentenceIndex) {
+    // If audio exists and sentence timings exist, jump to it
+    if (state.sentences && state.sentences[sentenceIndex]) {
+      audioPlayer.currentTime = state.sentences[sentenceIndex].start;
+      if (!state.isPlaying) {
         audioPlayer.play();
         setPlaybackState(true);
       }
+    } else {
+      // Start chapter playback
+      togglePlayChapter();
     }
   }
 
-  // -------------------------------------------------------------
-  // 5. Audio Player Event Listeners & Highlighter
-  // -------------------------------------------------------------
+  // Audio Player Event Listeners
   audioPlayer.addEventListener("timeupdate", () => {
-    if (!audioPlayer.duration) return;
+    const cur = audioPlayer.currentTime;
+    playerCurrentTime.textContent = formatTime(cur);
 
-    const current = audioPlayer.currentTime;
-    playerScrubber.value = (current / audioPlayer.duration) * 100;
-    playerCurrentTime.textContent = formatTime(current);
+    if (audioPlayer.duration) {
+      playerScrubber.value = (cur / audioPlayer.duration) * 100;
+    }
 
-    updateSentenceHighlight(current);
-  });
+    if (!state.sentences || state.sentences.length === 0) return;
 
-  function updateSentenceHighlight(currentTime) {
-    const spans = bookProseContainer.querySelectorAll(".reader-sentence[data-start]");
-    let activeFound = false;
+    // Find current sentence by time range
+    const idx = state.sentences.findIndex((s) => cur >= s.start && cur <= s.end);
 
-    spans.forEach((span) => {
-      const start = parseFloat(span.dataset.start);
-      const end = parseFloat(span.dataset.end);
-
-      if (!activeFound && currentTime >= start && currentTime <= end) {
-        if (!span.classList.contains("is-active")) {
-          bookProseContainer.querySelectorAll(".reader-sentence.is-active").forEach((s) => s.classList.remove("is-active"));
-          span.classList.add("is-active");
-          span.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
-        activeFound = true;
+    if (idx !== -1 && idx !== state.currentSentenceIndex) {
+      // Deactivate previous sentence
+      if (state.currentSentenceIndex !== -1) {
+        const prevEl = document.getElementById(`sentence-${state.currentSentenceIndex}`);
+        if (prevEl) prevEl.classList.remove("is-active");
       }
-    });
-  }
+
+      state.currentSentenceIndex = idx;
+      const curEl = document.getElementById(`sentence-${idx}`);
+      if (curEl) {
+        curEl.classList.add("is-active");
+        // Smooth auto-scroll to keep active sentence centered in view
+        curEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  });
 
   audioPlayer.addEventListener("loadedmetadata", () => {
     playerDuration.textContent = formatTime(audioPlayer.duration);
-    playerScrubber.value = 0;
   });
 
   audioPlayer.addEventListener("ended", () => {
     setPlaybackState(false);
-    playerScrubber.value = 0;
-    bookProseContainer.querySelectorAll(".reader-sentence.is-active").forEach((s) => s.classList.remove("is-active"));
-  });
-
-  function setPlaybackState(isPlaying) {
-    state.isPlaying = isPlaying;
-    if (isPlaying) {
-      playerPlayPauseIcon.setAttribute("data-lucide", "pause");
-      btnPreviewIcon.setAttribute("data-lucide", "pause");
-      btnPreviewText.textContent = "Pause Preview";
-    } else {
-      playerPlayPauseIcon.setAttribute("data-lucide", "play");
-      btnPreviewIcon.setAttribute("data-lucide", "play");
-      btnPreviewText.textContent = "Listen to Chapter Preview";
+    // Deactivate sentence highlight
+    if (state.currentSentenceIndex !== -1) {
+      const prevEl = document.getElementById(`sentence-${state.currentSentenceIndex}`);
+      if (prevEl) prevEl.classList.remove("is-active");
+      state.currentSentenceIndex = -1;
     }
-    refreshLucide();
-  }
 
-  btnPlayerPlayPause.addEventListener("click", () => {
-    if (!audioPlayer.src) {
-      btnPlayPreview.click();
-      return;
-    }
-    if (audioPlayer.paused) {
-      audioPlayer.play();
-      setPlaybackState(true);
-    } else {
-      audioPlayer.pause();
-      setPlaybackState(false);
+    // Auto-advance to next chapter if available
+    if (state.bookData && state.selectedChapterIndex < state.bookData.chapters.length) {
+      const nextIdx = state.selectedChapterIndex + 1;
+      switchChapter(nextIdx);
+      setTimeout(() => {
+        togglePlayChapter();
+      }, 600);
     }
   });
 
+  // Scrubber seeking
   playerScrubber.addEventListener("input", (e) => {
-    if (!audioPlayer.duration) return;
-    audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
+    if (audioPlayer.duration) {
+      audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration;
+    }
   });
 
+  // Rewind / Fast-Forward 10s
   btnPlayerRewind.addEventListener("click", () => {
     audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
   });
@@ -447,27 +648,46 @@ document.addEventListener("DOMContentLoaded", () => {
     audioPlayer.currentTime = Math.min(audioPlayer.duration || 0, audioPlayer.currentTime + 10);
   });
 
+  // Speed selection
   playerSpeedSelect.addEventListener("change", (e) => {
     audioPlayer.playbackRate = parseFloat(e.target.value);
   });
 
-  btnTestVoice.addEventListener("click", async () => {
-    try {
-      btnTestVoice.disabled = true;
-      const res = await fetch("/api/preview-voice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voice: state.selectedVoice, rate: state.rate, pitch: state.pitch })
-      });
-      if (!res.ok) throw new Error("Sample failed");
-      const d = await res.json();
-      audioPlayer.src = d.audio_url;
-      audioPlayer.play();
-      setPlaybackState(true);
-    } catch (e) {
-      alert("Error: " + e.message);
-    } finally {
-      btnTestVoice.disabled = false;
+  // Global Keyboard Shortcuts
+  window.addEventListener("keydown", (e) => {
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) {
+      if (e.key === "Escape") {
+        document.activeElement.blur();
+        closeTOC();
+        closeNarratorModal();
+        closeExportModal();
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      closeTOC();
+      closeNarratorModal();
+      closeExportModal();
+    } else if (e.code === "Space") {
+      e.preventDefault();
+      togglePlayChapter();
+    } else if (e.key === "ArrowLeft") {
+      if (e.shiftKey) {
+        if (state.bookData && state.selectedChapterIndex > 1) {
+          switchChapter(state.selectedChapterIndex - 1);
+        }
+      } else {
+        audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+      }
+    } else if (e.key === "ArrowRight") {
+      if (e.shiftKey) {
+        if (state.bookData && state.selectedChapterIndex < state.bookData.chapters.length) {
+          switchChapter(state.selectedChapterIndex + 1);
+        }
+      } else {
+        audioPlayer.currentTime = Math.min(audioPlayer.duration || 0, audioPlayer.currentTime + 10);
+      }
     }
   });
 
@@ -479,17 +699,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------------------------------------------
-  // 6. Full Audiobook Generation & Preferences Modal
+  // 5. Full Audiobook Generation & Preferences Modal
   // -------------------------------------------------------------
   function openExportModal() {
     if (!state.bookData) return;
-
-    // Update narrator recap
-    const v = state.curatedVoices.find((x) => x.id === state.selectedVoice) || state.curatedVoices[0];
-    const toneInfo = TONE_PRESETS[state.selectedTone]?.label || "Natural Cadence";
-    if (exportNarratorRecap && v) {
-      exportNarratorRecap.textContent = `Narrator: ${v.name} (${v.accent}) • ${toneInfo}`;
-    }
 
     // Populate custom chapter checklist
     if (exportCustomChapterList) {
@@ -510,30 +723,20 @@ document.addEventListener("DOMContentLoaded", () => {
       exportChapterCountSummary.textContent = `${state.bookData.chapters.length} Chapters (~${state.bookData.total_duration_min} min)`;
     }
 
-    if (modalExportAudiobook) {
-      modalExportAudiobook.classList.remove("hidden");
-    }
+    modalExportAudiobook.classList.remove("hidden");
     refreshLucide();
   }
 
   function closeExportModal() {
-    if (modalExportAudiobook) {
-      modalExportAudiobook.classList.add("hidden");
-    }
+    modalExportAudiobook.classList.add("hidden");
   }
 
-  if (btnOpenExportModal) {
-    btnOpenExportModal.addEventListener("click", openExportModal);
-  }
-  if (btnReopenExportModal) {
-    btnReopenExportModal.addEventListener("click", openExportModal);
-  }
-  if (btnCloseExportModal) {
-    btnCloseExportModal.addEventListener("click", closeExportModal);
-  }
-  if (btnCancelExportModal) {
-    btnCancelExportModal.addEventListener("click", closeExportModal);
-  }
+  if (btnOpenExportModal) btnOpenExportModal.addEventListener("click", openExportModal);
+  if (btnBarExport) btnBarExport.addEventListener("click", openExportModal);
+  if (btnPlayerExport) btnPlayerExport.addEventListener("click", openExportModal);
+  if (btnReopenExportModal) btnReopenExportModal.addEventListener("click", openExportModal);
+  if (btnCloseExportModal) btnCloseExportModal.addEventListener("click", closeExportModal);
+  if (btnCancelExportModal) btnCancelExportModal.addEventListener("click", closeExportModal);
 
   // Handle Chapter Scope Radios
   document.querySelectorAll('input[name="chapterScope"]').forEach((radio) => {
@@ -569,11 +772,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btnConfirmGenerateAudiobook.addEventListener("click", async () => {
       if (!state.bookData) return;
 
-      // Determine format preference
       const selectedFormatRadio = document.querySelector('input[name="formatPref"]:checked');
       const formatPreference = selectedFormatRadio ? selectedFormatRadio.value : "both";
 
-      // Determine chapter selection
       const scopeRadio = document.querySelector('input[name="chapterScope"]:checked');
       let selectedChapters = null;
       if (scopeRadio && scopeRadio.value === "custom") {
@@ -645,7 +846,6 @@ document.addEventListener("DOMContentLoaded", () => {
           fullAudiobookProgressCard.classList.add("hidden");
           fullAudiobookDownloadCard.classList.remove("hidden");
 
-          // Configure download buttons based on generated files
           if (msg.master_mp3_url) {
             btnDownloadMasterMp3.href = msg.master_mp3_url;
             btnDownloadMasterMp3.classList.remove("hidden");
@@ -694,7 +894,6 @@ document.addEventListener("DOMContentLoaded", () => {
               individualChaptersList.appendChild(row);
             });
 
-            // Bind click to play on chapter rows
             individualChaptersList.querySelectorAll(".btn-play-ch-track").forEach((btn) => {
               btn.addEventListener("click", () => {
                 const url = btn.getAttribute("data-url");
@@ -713,11 +912,9 @@ document.addEventListener("DOMContentLoaded", () => {
           // Load audio into bottom player
           if (msg.master_mp3_url) {
             audioPlayer.src = msg.master_mp3_url;
-            btnPlayerDownloadMp3.href = msg.master_mp3_url;
             playerChapterTitle.textContent = `${msg.book_title} (Full Master Audiobook)`;
           } else if (msg.chapters && msg.chapters.length > 0) {
             audioPlayer.src = msg.chapters[0].url;
-            btnPlayerDownloadMp3.href = msg.chapters[0].url;
             playerChapterTitle.textContent = `${msg.chapters[0].title} (Chapter 1)`;
           }
 
@@ -736,7 +933,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------------------------------------------
-  // 7. Uploading Files
+  // 6. Uploading Files
   // -------------------------------------------------------------
   btnUploadNew.addEventListener("click", () => {
     uploadSection.classList.remove("hidden");
