@@ -418,3 +418,9 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str):
     except WebSocketDisconnect:
         if job_id in ACTIVE_WEBSOCKETS and websocket in ACTIVE_WEBSOCKETS[job_id]:
             ACTIVE_WEBSOCKETS[job_id].remove(websocket)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    from app.config import HOST, PORT
+    uvicorn.run("app.main:app", host=HOST, port=PORT, reload=False)
