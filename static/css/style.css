@@ -1,0 +1,152 @@
+/* Audiobook Studio - Editorial / Book Reader Styling */
+/* Clean, human, literary design. Zero neon / zero AI-slop gradients. */
+
+:root {
+  --bg-page: #fbf9f5;
+  --bg-surface: #ffffff;
+  --bg-secondary: #f7f5f0;
+  --border-subtle: #e7e3da;
+  --border-strong: #d3cdbf;
+  
+  --text-main: #1f1d1a;
+  --text-muted: #6b665c;
+  --text-faint: #9c9588;
+
+  --accent-ink: #1a1a1a;
+  --accent-highlight: #fef08a; /* Warm paper yellow highlighter */
+  --accent-highlight-text: #1a1a1a;
+
+  --player-bg: #ffffff;
+  --player-border: #e7e3da;
+
+  --font-serif: "Newsreader", "Charter", "Georgia", "Cambria", "Times New Roman", serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Warm Kindle / Apple Books Dark Mode */
+html.dark {
+  --bg-page: #141311;
+  --bg-surface: #1e1c19;
+  --bg-secondary: #272521;
+  --border-subtle: #33302b;
+  --border-strong: #4a463e;
+
+  --text-main: #f0ece1;
+  --text-muted: #a69f92;
+  --text-faint: #736d62;
+
+  --accent-ink: #f0ece1;
+  --accent-highlight: #4d330c; /* Warm dark-mode amber glow */
+  --accent-highlight-text: #fde047;
+
+  --player-bg: #1c1a17;
+  --player-border: #33302b;
+}
+
+/* Base Body */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Editorial Book Paper Canvas */
+.book-page-canvas {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 10px 24px -10px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Book Reading Prose Typography */
+.book-prose {
+  font-family: var(--font-serif);
+  font-size: 1.18rem;
+  line-height: 1.85;
+  color: var(--text-main);
+}
+
+.book-prose p {
+  margin-bottom: 1.35em;
+  text-rendering: optimizeLegibility;
+}
+
+/* Sentence Highlighting for Immersion Reading */
+.reader-sentence {
+  position: relative;
+  border-radius: 4px;
+  padding: 2px 3px;
+  margin: 0 -1px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+}
+
+.reader-sentence:hover {
+  background-color: rgba(254, 240, 138, 0.3);
+}
+
+html.dark .reader-sentence:hover {
+  background-color: rgba(254, 240, 138, 0.15);
+}
+
+.reader-sentence.is-active {
+  background-color: var(--accent-highlight);
+  color: var(--accent-highlight-text);
+  box-shadow: 0 0 0 2px var(--accent-highlight);
+  font-weight: 500;
+}
+
+/* Audio Player Bottom Bar */
+#stickyPlayerBar {
+  background-color: var(--player-bg);
+  border-color: var(--player-border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Clean Custom Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-subtle);
+  height: 5px;
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  cursor: pointer;
+  border: 2px solid var(--bg-surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}

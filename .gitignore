@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+.venv/
+
+# Audiobook Temporary Storage & Caches
+data/uploads/*
+!data/uploads/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+
+# System & IDE
+.DS_Store
+.idea/
+.vscode/
+*.log

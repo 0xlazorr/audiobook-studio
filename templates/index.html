@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audiobook Studio — Convert Any Document to Spoken Audio</title>
+
+  <!-- Google Fonts: Newsreader (Book text) and Inter (UI controls) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN with dark mode enabled -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Newsreader', 'Georgia', 'Cambria', 'serif'],
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Clean Editorial CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="bg-[#fbf9f5] dark:bg-[#141311] text-[#1f1d1a] dark:text-[#f0ece1] flex flex-col min-h-screen selection:bg-amber-200 dark:selection:bg-amber-900">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-[#e7e3da] dark:border-[#33302b] bg-white dark:bg-[#1a1815] sticky top-0 z-40 transition-colors">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 flex items-center justify-center font-serif text-base font-bold shadow-sm">
+          A
+        </div>
+        <div>
+          <span class="font-bold text-sm tracking-tight text-stone-900 dark:text-stone-100">Audiobook Studio</span>
+          <span class="text-xs text-stone-500 dark:text-stone-400 ml-1.5 hidden sm:inline">&mdash; Natural Spoken Audiobooks</span>
+        </div>
+      </div>
+
+      <!-- Actions & Theme Toggle -->
+      <div class="flex items-center space-x-2">
+        <button id="btnUploadNew" class="text-xs bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 px-3 py-1.5 rounded-md font-medium transition flex items-center space-x-1.5 shadow-sm">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+          <span>Upload File</span>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button id="btnToggleTheme" class="p-1.5 rounded-md text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 border border-stone-300 dark:border-stone-700 transition" title="Toggle Light / Dark Mode">
+          <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+          <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Upload Section (Shown initially when starting) -->
+  <section id="uploadSection" class="max-w-xl mx-auto my-12 px-4 w-full">
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-2xl p-8 sm:p-10 text-center space-y-4 shadow-sm transition-colors">
+      <input type="file" id="fileInput" accept=".pdf,.epub,.docx,.txt,.md,.markdown,.html,.htm,.rtf" class="hidden">
+      
+      <div id="dropzonePrompt" class="space-y-3 cursor-pointer py-4" onclick="document.getElementById('fileInput').click()">
+        <div class="w-14 h-14 mx-auto rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-700 dark:text-stone-200 border border-stone-200 dark:border-stone-700">
+          <i data-lucide="file-up" class="w-7 h-7"></i>
+        </div>
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold text-stone-900 dark:text-stone-100">Upload Your Book or Document</h2>
+          <p class="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mt-1">Drag & drop your file here, or click to browse</p>
+        </div>
+        <div class="pt-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-stone-500 dark:text-stone-400">
+          <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">PDF</span>
+          <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">EPUB</span>
+          <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">Word (DOCX)</span>
+          <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">Markdown</span>
+          <span class="bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded border border-stone-200 dark:border-stone-700">TXT / RTF / HTML</span>
+        </div>
+      </div>
+
+      <div id="uploadSpinner" class="hidden py-8 space-y-2">
+        <div class="w-8 h-8 border-2 border-stone-300 dark:border-stone-600 border-t-stone-800 dark:border-t-stone-100 rounded-full animate-spin mx-auto"></div>
+        <p class="text-xs text-stone-600 dark:text-stone-300 font-medium">Extracting book text, chapters, and cleaning headers...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Reader Canvas (Shown once a file is uploaded) -->
+  <main id="readerSection" class="hidden flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 pb-36 space-y-6">
+
+    <!-- Document Info & Narrator Controls Bar -->
+    <div class="bg-white dark:bg-[#1e1c19] border border-[#e7e3da] dark:border-[#33302b] rounded-xl p-4 sm:p-5 shadow-sm space-y-4 transition-colors">
+      
+      <!-- Row 1: Book Title, Author & Stats -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 border-b border-stone-100 dark:border-[#33302b] gap-3">
+        <div>
+          <h1 id="bookTitleDisplay" class="font-serif text-xl sm:text-2xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Document Title</h1>
+          <p id="bookAuthorDisplay" class="text-xs text-stone-500 dark:text-stone-400 mt-0.5">By Author &bull; <span id="bookStatsDisplay">Chapters &bull; Words</span></p>
+        </div>
+
+        <!-- Full Audiobook Download Button -->
+        <button id="btnFullAudiobook" class="bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 text-xs font-semibold px-4 py-2 rounded-lg transition shadow-sm flex items-center space-x-1.5 self-start sm:self-center flex-shrink-0">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Download Full Audiobook</span>
+        </button>
+      </div>
+
+      <!-- Row 2: Voice, Pacing & Chapter Selectors -->
+      <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+        
+        <!-- Narrator Selector (5 cols) -->
+        <div class="sm:col-span-5 space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-stone-700 dark:text-stone-300 block">Narrator Voice:</label>
+            <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">Emotional & Nuanced</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <select id="voiceSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
+              <!-- Populated dynamically -->
+            </select>
+            <button id="btnTestVoice" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 px-2 py-2 rounded-lg text-xs font-medium flex-shrink-0" title="Audition voice sample">
+              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chapter Selector (4 cols) -->
+        <div class="sm:col-span-4 space-y-1">
+          <label class="font-semibold text-stone-700 dark:text-stone-300 block">Chapter:</label>
+          <select id="chapterSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Pacing & Reading Tone (3 cols) -->
+        <div class="sm:col-span-3 space-y-1">
+          <label class="font-semibold text-stone-700 dark:text-stone-300 block">Reading Tone & Pacing:</label>
+          <select id="pacingSelect" class="w-full bg-[#fbf9f5] dark:bg-[#272521] border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 rounded-lg px-2.5 py-2 outline-none focus:border-stone-800 dark:focus:border-stone-400 font-medium">
+            <option value="natural" selected>Natural Cadence (1.0x)</option>
+            <option value="storyteller">Storyteller (0.95x, scene pauses)</option>
+            <option value="calm">Calm & Soothing (0.88x, gentle)</option>
+            <option value="brisk">Brisk & Efficient (1.15x speed)</option>
+            <option value="dramatic">Dramatic & Deep (0.92x, -5Hz)</option>
+            <option value="documentary">Authoritative Documentary (1.0x)</option>
+          </select>
+        </div>
+
+      </div>
+
+      <!-- Action Banner: Big Listen to Preview Button -->
+      <div class="bg-[#f7f5f0] dark:bg-[#272521] border border-[#e7e3da] dark:border-[#33302b] rounded-lg p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
+        <div class="text-xs text-stone-600 dark:text-stone-400">
+          <strong class="text-stone-900 dark:text-stone-100 font-semibold">Read-Along Immersion:</strong>
+          Click below to hear the narrator read with natural emotional inflection while each sentence highlights on the page in real time.
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="btnPlayPreview" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition shadow-sm flex items-center space-x-2">
+            <i data-lucide="play" class="w-4 h-4 fill-white" id="btnPreviewIcon"></i>
+            <span id="btnPreviewText">Listen to Chapter Preview</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Full Audiobook Conversion Progress -->
+    <div id="fullAudiobookProgressCard" class="hidden bg-white dark:bg-[#1e1c19] border border-stone-300 dark:border-stone-700 rounded-xl p-5 space-y-3 shadow-sm">
+      <div class="flex items-center justify-between text-xs">
+        <div class="flex items-center space-x-2">
+          <div class="w-4 h-4 border-2 border-stone-400 border-t-stone-900 dark:border-t-stone-100 rounded-full animate-spin"></div>
+          <span id="fullConversionStatusText" class="font-semibold text-stone-900 dark:text-stone-100">Synthesizing complete audiobook...</span>
+        </div>
+        <span id="fullConversionPercentText" class="font-mono font-bold text-stone-700 dark:text-stone-300">0%</span>
+      </div>
+      <div class="w-full bg-stone-100 dark:bg-stone-800 rounded-full h-2 overflow-hidden border border-stone-200 dark:border-stone-700">
+        <div id="fullConversionProgressBar" class="bg-stone-900 dark:bg-stone-100 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Full Audiobook Downloads Ready Card -->
+    <div id="fullAudiobookDownloadCard" class="hidden bg-stone-50 dark:bg-[#1e1c19] border border-stone-300 dark:border-stone-700 rounded-xl p-5 space-y-4 shadow-sm">
+      <div class="flex items-center space-x-2.5">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 dark:text-emerald-400"></i>
+        <h3 class="font-bold text-sm text-stone-900 dark:text-stone-100">Audiobook Generated Successfully!</h3>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        <a id="btnDownloadMasterMp3" href="#" download class="p-3 rounded-lg bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-xs font-semibold text-stone-900 dark:text-stone-100 flex items-center justify-between transition">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="music" class="w-4 h-4 text-stone-700 dark:text-stone-300"></i>
+            <span>Master Audiobook (.MP3)</span>
+          </div>
+          <i data-lucide="download" class="w-4 h-4 text-stone-600 dark:text-stone-400"></i>
+        </a>
+        <a id="btnDownloadZipFile" href="#" download class="p-3 rounded-lg bg-white dark:bg-stone-800 hover:bg-stone-100 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-xs font-semibold text-stone-900 dark:text-stone-100 flex items-center justify-between transition">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="archive" class="w-4 h-4 text-stone-700 dark:text-stone-300"></i>
+            <span>Chapters Bundle (.ZIP + M3U)</span>
+          </div>
+          <i data-lucide="download" class="w-4 h-4 text-stone-600 dark:text-stone-400"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- THE BOOK PAGE (Editorial Layout with Real-Time Sentence Synchronization) -->
+    <article class="book-page-canvas p-6 sm:p-12 space-y-8">
+      
+      <!-- Chapter Heading -->
+      <div class="text-center max-w-xl mx-auto space-y-2 pb-6 border-b border-[#e7e3da] dark:border-[#33302b]">
+        <h2 id="chapterTitleHeading" class="font-serif text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">Chapter 1</h2>
+        <p class="text-xs text-stone-500 dark:text-stone-400 font-sans uppercase tracking-widest" id="readingModeIndicator">Read-Along Mode &bull; Click any sentence to play from there</p>
+      </div>
+
+      <!-- Book Prose Container (Sentences are injected here and highlighted during playback) -->
+      <div id="bookProseContainer" class="book-prose max-w-2xl mx-auto text-stone-800 dark:text-stone-200">
+        <!-- Rendered dynamically as readable sentences -->
+      </div>
+
+    </article>
+
+  </main>
+
+  <!-- Sticky Bottom Audio Player Bar (Audible / Apple Podcasts Style) -->
+  <div id="stickyPlayerBar" class="fixed bottom-0 left-0 right-0 border-t shadow-lg py-3 px-4 z-50">
+    <audio id="audioPlayer" class="hidden"></audio>
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      
+      <!-- Current Chapter & Voice -->
+      <div class="flex items-center space-x-3 w-full sm:w-1/3">
+        <div class="w-9 h-9 rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 flex items-center justify-center text-stone-700 dark:text-stone-200 flex-shrink-0">
+          <i data-lucide="headphones" class="w-4 h-4"></i>
+        </div>
+        <div class="truncate">
+          <div id="playerChapterTitle" class="text-xs font-bold text-stone-900 dark:text-stone-100 truncate">Audiobook Player Ready</div>
+          <div id="playerNarratorInfo" class="text-[11px] text-stone-500 dark:text-stone-400 truncate">Select a voice and tone</div>
+        </div>
+      </div>
+
+      <!-- Playback Controls & Scrubber -->
+      <div class="flex flex-col items-center space-y-1 w-full sm:w-2/5">
+        <div class="flex items-center space-x-4">
+          <button id="btnPlayerRewind" class="p-1 rounded text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition" title="Rewind 10s">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          </button>
+          <button id="btnPlayerPlayPause" class="w-9 h-9 rounded-full bg-stone-900 dark:bg-stone-100 hover:bg-stone-800 dark:hover:bg-white text-white dark:text-stone-900 flex items-center justify-center shadow transition">
+            <i data-lucide="play" class="w-4 h-4 fill-white dark:fill-stone-900" id="playerPlayPauseIcon"></i>
+          </button>
+          <button id="btnPlayerForward" class="p-1 rounded text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition" title="Forward 10s">
+            <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2 w-full text-[11px] font-mono text-stone-500 dark:text-stone-400">
+          <span id="playerCurrentTime">0:00</span>
+          <input type="range" id="playerScrubber" min="0" max="100" value="0" class="flex-1 h-1.5 bg-stone-200 dark:bg-stone-700 rounded-lg cursor-pointer">
+          <span id="playerDuration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Action & Direct Download -->
+      <div class="flex items-center justify-end space-x-2 w-full sm:w-1/3">
+        <select id="playerSpeedSelect" class="bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs rounded-md px-2 py-1 outline-none">
+          <option value="0.8">0.8x</option>
+          <option value="1.0" selected>1.0x</option>
+          <option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option>
+        </select>
+        <a id="btnPlayerDownloadMp3" href="#" download class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs font-semibold px-3 py-1.5 rounded-md transition flex items-center space-x-1" title="Download current audio snippet">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Save MP3</span>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- App Script -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
