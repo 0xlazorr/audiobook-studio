@@ -67,8 +67,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const playerSpeedSelect = document.getElementById("playerSpeedSelect");
   const btnPlayerDownloadMp3 = document.getElementById("btnPlayerDownloadMp3");
 
-  // Full Audiobook Conversion
+  // Full Audiobook Conversion & Export Modal
   const btnFullAudiobook = document.getElementById("btnFullAudiobook");
+  const btnOpenExportModal = document.getElementById("btnOpenExportModal") || btnFullAudiobook;
+  const modalExportAudiobook = document.getElementById("modalExportAudiobook");
+  const btnCloseExportModal = document.getElementById("btnCloseExportModal");
+  const btnCancelExportModal = document.getElementById("btnCancelExportModal");
+  const btnConfirmGenerateAudiobook = document.getElementById("btnConfirmGenerateAudiobook");
+  const btnReopenExportModal = document.getElementById("btnReopenExportModal");
+  const exportCustomChapterList = document.getElementById("exportCustomChapterList");
+  const exportChapterCountSummary = document.getElementById("exportChapterCountSummary");
+  const exportNarratorRecap = document.getElementById("exportNarratorRecap");
+  const downloadCardFormatNotice = document.getElementById("downloadCardFormatNotice");
+  const individualChaptersContainer = document.getElementById("individualChaptersContainer");
+  const individualChaptersCount = document.getElementById("individualChaptersCount");
+  const individualChaptersList = document.getElementById("individualChaptersList");
+
   const fullAudiobookProgressCard = document.getElementById("fullAudiobookProgressCard");
   const fullConversionStatusText = document.getElementById("fullConversionStatusText");
   const fullConversionPercentText = document.getElementById("fullConversionPercentText");
@@ -465,45 +479,150 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------------------------------------------
-  // 6. Full Audiobook Generation & Downloads
+  // 6. Full Audiobook Generation & Preferences Modal
   // -------------------------------------------------------------
-  btnFullAudiobook.addEventListener("click", async () => {
+  function openExportModal() {
     if (!state.bookData) return;
 
-    fullAudiobookProgressCard.classList.remove("hidden");
-    fullAudiobookDownloadCard.classList.add("hidden");
-    fullConversionProgressBar.style.width = "0%";
-    fullConversionPercentText.textContent = "0%";
-    fullConversionStatusText.textContent = "Initializing audiobook synthesis...";
-    fullAudiobookProgressCard.scrollIntoView({ behavior: "smooth" });
-
-    btnFullAudiobook.disabled = true;
-
-    try {
-      const res = await fetch("/api/generate-audiobook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          book_id: state.bookData.book_id,
-          voice: state.selectedVoice,
-          rate: state.rate,
-          pitch: state.pitch,
-          title: state.bookData.title,
-          author: state.bookData.author
-        })
-      });
-
-      if (!res.ok) throw new Error("Conversion failed to start");
-      const data = await res.json();
-
-      pollStatus(data.job_id);
-
-    } catch (e) {
-      alert("Error: " + e.message);
-      fullAudiobookProgressCard.classList.add("hidden");
-      btnFullAudiobook.disabled = false;
+    // Update narrator recap
+    const v = state.curatedVoices.find((x) => x.id === state.selectedVoice) || state.curatedVoices[0];
+    const toneInfo = TONE_PRESETS[state.selectedTone]?.label || "Natural Cadence";
+    if (exportNarratorRecap && v) {
+      exportNarratorRecap.textContent = `Narrator: ${v.name} (${v.accent}) • ${toneInfo}`;
     }
+
+    // Populate custom chapter checklist
+    if (exportCustomChapterList) {
+      exportCustomChapterList.innerHTML = "";
+      state.bookData.chapters.forEach((ch) => {
+        const item = document.createElement("label");
+        item.className = "flex items-center space-x-2.5 p-1.5 rounded hover:bg-stone-200/50 dark:hover:bg-stone-700/50 cursor-pointer";
+        item.innerHTML = `
+          <input type="checkbox" class="export-ch-check text-stone-900 rounded focus:ring-stone-800" value="${ch.index}" checked>
+          <span class="text-stone-800 dark:text-stone-200 truncate flex-1 font-medium">${ch.title}</span>
+          <span class="text-stone-400 text-[10px] flex-shrink-0">${ch.word_count.toLocaleString()} words &middot; ~${ch.duration_min} min</span>
+        `;
+        exportCustomChapterList.appendChild(item);
+      });
+    }
+
+    if (exportChapterCountSummary) {
+      exportChapterCountSummary.textContent = `${state.bookData.chapters.length} Chapters (~${state.bookData.total_duration_min} min)`;
+    }
+
+    if (modalExportAudiobook) {
+      modalExportAudiobook.classList.remove("hidden");
+    }
+    refreshLucide();
+  }
+
+  function closeExportModal() {
+    if (modalExportAudiobook) {
+      modalExportAudiobook.classList.add("hidden");
+    }
+  }
+
+  if (btnOpenExportModal) {
+    btnOpenExportModal.addEventListener("click", openExportModal);
+  }
+  if (btnReopenExportModal) {
+    btnReopenExportModal.addEventListener("click", openExportModal);
+  }
+  if (btnCloseExportModal) {
+    btnCloseExportModal.addEventListener("click", closeExportModal);
+  }
+  if (btnCancelExportModal) {
+    btnCancelExportModal.addEventListener("click", closeExportModal);
+  }
+
+  // Handle Chapter Scope Radios
+  document.querySelectorAll('input[name="chapterScope"]').forEach((radio) => {
+    radio.addEventListener("change", (e) => {
+      if (exportCustomChapterList) {
+        if (e.target.value === "custom") {
+          exportCustomChapterList.classList.remove("hidden");
+        } else {
+          exportCustomChapterList.classList.add("hidden");
+        }
+      }
+    });
   });
+
+  // Handle Format Preference Radios visual styling
+  document.querySelectorAll('input[name="formatPref"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      document.querySelectorAll(".format-pref-label").forEach((lbl) => {
+        const input = lbl.querySelector("input");
+        if (input && input.checked) {
+          lbl.classList.add("border-stone-900", "dark:border-stone-100", "bg-amber-50/50", "dark:bg-stone-800/60");
+          lbl.classList.remove("border-stone-200", "dark:border-stone-700", "bg-[#fbf9f5]", "dark:bg-[#272521]");
+        } else {
+          lbl.classList.remove("border-stone-900", "dark:border-stone-100", "bg-amber-50/50", "dark:bg-stone-800/60");
+          lbl.classList.add("border-stone-200", "dark:border-stone-700", "bg-[#fbf9f5]", "dark:bg-[#272521]");
+        }
+      });
+    });
+  });
+
+  // Confirm and start audiobook synthesis
+  if (btnConfirmGenerateAudiobook) {
+    btnConfirmGenerateAudiobook.addEventListener("click", async () => {
+      if (!state.bookData) return;
+
+      // Determine format preference
+      const selectedFormatRadio = document.querySelector('input[name="formatPref"]:checked');
+      const formatPreference = selectedFormatRadio ? selectedFormatRadio.value : "both";
+
+      // Determine chapter selection
+      const scopeRadio = document.querySelector('input[name="chapterScope"]:checked');
+      let selectedChapters = null;
+      if (scopeRadio && scopeRadio.value === "custom") {
+        const checkedBoxes = document.querySelectorAll(".export-ch-check:checked");
+        selectedChapters = Array.from(checkedBoxes).map((cb) => parseInt(cb.value, 10));
+        if (selectedChapters.length === 0) {
+          alert("Please select at least one chapter to synthesize.");
+          return;
+        }
+      }
+
+      closeExportModal();
+
+      fullAudiobookProgressCard.classList.remove("hidden");
+      fullAudiobookDownloadCard.classList.add("hidden");
+      fullConversionProgressBar.style.width = "0%";
+      fullConversionPercentText.textContent = "0%";
+      fullConversionStatusText.textContent = "Synthesizing audiobook according to preferences...";
+      fullAudiobookProgressCard.scrollIntoView({ behavior: "smooth" });
+
+      if (btnOpenExportModal) btnOpenExportModal.disabled = true;
+
+      try {
+        const res = await fetch("/api/generate-audiobook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            book_id: state.bookData.book_id,
+            voice: state.selectedVoice,
+            rate: state.rate,
+            pitch: state.pitch,
+            title: state.bookData.title,
+            author: state.bookData.author,
+            selected_chapters: selectedChapters,
+            format_preference: formatPreference
+          })
+        });
+
+        if (!res.ok) throw new Error("Conversion failed to start");
+        const data = await res.json();
+        pollStatus(data.job_id);
+
+      } catch (e) {
+        alert("Error: " + e.message);
+        fullAudiobookProgressCard.classList.add("hidden");
+        if (btnOpenExportModal) btnOpenExportModal.disabled = false;
+      }
+    });
+  }
 
   function pollStatus(jobId) {
     const timer = setInterval(async () => {
@@ -526,19 +645,89 @@ document.addEventListener("DOMContentLoaded", () => {
           fullAudiobookProgressCard.classList.add("hidden");
           fullAudiobookDownloadCard.classList.remove("hidden");
 
-          btnDownloadMasterMp3.href = msg.master_mp3_url;
-          btnDownloadZipFile.href = msg.zip_url;
-          btnFullAudiobook.disabled = false;
+          // Configure download buttons based on generated files
+          if (msg.master_mp3_url) {
+            btnDownloadMasterMp3.href = msg.master_mp3_url;
+            btnDownloadMasterMp3.classList.remove("hidden");
+          } else {
+            btnDownloadMasterMp3.classList.add("hidden");
+          }
 
+          if (msg.zip_url) {
+            btnDownloadZipFile.href = msg.zip_url;
+            btnDownloadZipFile.classList.remove("hidden");
+          } else {
+            btnDownloadZipFile.classList.add("hidden");
+          }
+
+          if (downloadCardFormatNotice) {
+            if (msg.format_preference === "single") {
+              downloadCardFormatNotice.textContent = "Generated as a Single Continuous Master MP3 file.";
+            } else if (msg.format_preference === "playlist") {
+              downloadCardFormatNotice.textContent = "Generated as a Chapter Playlist Bundle with M3U/M3U8 playlists.";
+            } else {
+              downloadCardFormatNotice.textContent = "Generated Complete Edition: Single Master MP3 + Chapter Playlist Bundle.";
+            }
+          }
+
+          // Populate individual chapter tracks
+          if (individualChaptersList && msg.chapters && msg.chapters.length > 0) {
+            individualChaptersCount.textContent = msg.chapters.length;
+            individualChaptersList.innerHTML = "";
+            msg.chapters.forEach((ch) => {
+              const row = document.createElement("div");
+              row.className = "flex items-center justify-between py-2 text-stone-800 dark:text-stone-200 gap-2 border-b border-stone-100 dark:border-stone-800/40 last:border-none";
+              row.innerHTML = `
+                <div class="flex items-center space-x-2.5 truncate">
+                  <span class="w-5 font-mono text-[11px] text-stone-400 font-bold">${ch.index}.</span>
+                  <span class="truncate font-medium">${ch.title}</span>
+                </div>
+                <div class="flex items-center space-x-2 flex-shrink-0">
+                  <button class="btn-play-ch-track p-1.5 rounded hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300" title="Play Chapter Track" data-url="${ch.url}" data-title="${ch.title}">
+                    <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i>
+                  </button>
+                  <a href="${ch.url}" download class="p-1.5 rounded hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300" title="Download MP3">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                  </a>
+                </div>
+              `;
+              individualChaptersList.appendChild(row);
+            });
+
+            // Bind click to play on chapter rows
+            individualChaptersList.querySelectorAll(".btn-play-ch-track").forEach((btn) => {
+              btn.addEventListener("click", () => {
+                const url = btn.getAttribute("data-url");
+                const title = btn.getAttribute("data-title");
+                audioPlayer.src = url;
+                playerChapterTitle.textContent = title;
+                audioPlayer.play();
+                setPlaybackState(true);
+              });
+            });
+          }
+
+          if (btnOpenExportModal) btnOpenExportModal.disabled = false;
           fullAudiobookDownloadCard.scrollIntoView({ behavior: "smooth" });
 
-          audioPlayer.src = msg.master_mp3_url;
-          btnPlayerDownloadMp3.href = msg.master_mp3_url;
+          // Load audio into bottom player
+          if (msg.master_mp3_url) {
+            audioPlayer.src = msg.master_mp3_url;
+            btnPlayerDownloadMp3.href = msg.master_mp3_url;
+            playerChapterTitle.textContent = `${msg.book_title} (Full Master Audiobook)`;
+          } else if (msg.chapters && msg.chapters.length > 0) {
+            audioPlayer.src = msg.chapters[0].url;
+            btnPlayerDownloadMp3.href = msg.chapters[0].url;
+            playerChapterTitle.textContent = `${msg.chapters[0].title} (Chapter 1)`;
+          }
+
+          refreshLucide();
+
         } else if (msg.status === "error") {
           clearInterval(timer);
           alert("Conversion error: " + (msg.message || "Unknown error"));
           fullAudiobookProgressCard.classList.add("hidden");
-          btnFullAudiobook.disabled = false;
+          if (btnOpenExportModal) btnOpenExportModal.disabled = false;
         }
       } catch (err) {
         console.error("Poll error:", err);

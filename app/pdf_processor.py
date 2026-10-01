@@ -6,32 +6,198 @@ Extracts, cleans, and segments text from PDF, EPUB, DOCX, TXT, Markdown, HTML, a
 import os
 import re
 from typing import List, Dict, Any, Optional
+from collections import Counter
 import pypdf
 import bs4
 from bs4 import BeautifulSoup
 
 
+ROMAN_REGEX = re.compile(
+    r"^(m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3}))$",
+    re.IGNORECASE
+)
+
+
+def is_page_number_or_artifact(line: str) -> bool:
+    """
+    Detects if a line is an isolated page number, running header/footer artifact,
+    bracketed citation, roman numeral, decorative divider, or standalone web link.
+    """
+    s = line.strip()
+    if not s:
+        return False
+
+    # Strip enclosing brackets, parentheses, hyphens, dashes, slashes, bullets
+    core = re.sub(r"^[\(\[\{<|~•—–\-\s/]+|[\)\]\}>|~•—–\-\s/]+$", "", s)
+    if not core:
+        return True
+
+    # 1. Standalone digits (e.g., '12', '- 12 -', '[ 12 ]', '— 12 —')
+    if core.isdigit():
+        return True
+
+    # 2. Standalone roman numerals up to 39 (e.g., 'iv', 'xii', '— iv —', '[xiv]')
+    if len(core) <= 7 and ROMAN_REGEX.match(core):
+        return True
+
+    # 3. Page X, Page X of Y, Pg. X, p. X, pp. X-Y
+    if re.match(
+        r"^(?:Page|page|PAGE|Pg\.?|pg\.?|p\.?|P\.?|pp\.?)\s*(?:\d+|[ivxlcdm]+)(\s*(?:of|/|-|–|—)\s*(?:\d+|[ivxlcdm]+))?$",
+        s,
+        re.IGNORECASE
+    ):
+        return True
+
+    # 4. X of Y (e.g. '12 of 300' or '12 / 300')
+    if re.match(r"^\d+\s+(?:of|/)\s+\d+$", s, re.IGNORECASE):
+        return True
+
+    # 5. Header format: '12 | Book Title' or 'Book Title | 12'
+    if (
+        re.match(r"^\d+\s*[\|\/·•—–\-]\s*[A-Za-z0-9\s\.\,\'\"]{3,60}$", s)
+        or re.match(r"^[A-Za-z0-9\s\.\,\'\"]{3,60}\s*[\|\/·•—–\-]\s*\d+$", s)
+    ):
+        return True
+
+    # 6. Header format with 3+ spaces/tabs: 'Book Title    12' or '12    Book Title'
+    if (
+        re.match(r"^\d+\s{3,}[A-Za-z0-9\s\.\,\'\"]{3,60}$", s)
+        or re.match(r"^[A-Za-z0-9\s\.\,\'\"]{3,60}\s{3,}\d+$", s)
+    ):
+        return True
+
+    # 7. Decorative line dividers (e.g. * * *, ---, ___, • • •, ~~~)
+    if re.match(r"^[\*\-\_\=\~•·#\s]{3,}$", s):
+        return True
+
+    # 8. Standalone URLs or DOIs
+    if (
+        re.match(r"^https?:\/\/[^\s]+$", s, re.IGNORECASE)
+        or re.match(r"^doi:\s*[^\s]+$", s, re.IGNORECASE)
+        or re.match(r"^www\.[^\s]+$", s, re.IGNORECASE)
+    ):
+        return True
+
+    # 9. Standalone footnote or bullet symbols
+    if re.match(r"^[\*†‡•·\d\.]+$", s) and len(s) <= 4:
+        return True
+
+    return False
+
+
+def normalize_header_candidate(line: str) -> str:
+    """Normalizes candidate header lines for recurring pattern detection."""
+    s = line.strip()
+    # Strip leading/trailing digits, page markers, dashes
+    s = re.sub(r"^(?:page\s+)?\d+\s*[-—–|/·•]?\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s*[-—–|/·•]?\s*(?:page\s+)?\d+$", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"[^a-zA-Z0-9\s]", "", s).lower().strip()
+    return s
+
+
+def clean_document_pages(raw_pages: List[str]) -> List[str]:
+    """
+    Cleans extracted multi-page documents (PDFs) by:
+    1. Detecting and removing cross-page recurring headers and footers (book titles, chapter running headers).
+    2. Stripping isolated page numbers, roman numerals, and footnote lines.
+    3. Stripping in-text bracket footnotes (e.g. 'word[1]' -> 'word').
+    4. Unifying hyphenation and punctuation.
+    """
+    if not raw_pages:
+        return []
+
+    pages_lines = [
+        p.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        for p in raw_pages
+    ]
+
+    num_pages = len(pages_lines)
+    header_counts = Counter()
+    footer_counts = Counter()
+
+    threshold = 2 if num_pages <= 8 else max(3, int(num_pages * 0.15))
+
+    for plines in pages_lines:
+        non_empty = [l.strip() for l in plines if l.strip()]
+        for top_l in non_empty[:2]:
+            norm = normalize_header_candidate(top_l)
+            if norm and len(norm) > 3 and not norm.isdigit():
+                header_counts[norm] += 1
+        for bot_l in non_empty[-2:]:
+            norm = normalize_header_candidate(bot_l)
+            if norm and len(norm) > 3 and not norm.isdigit():
+                footer_counts[norm] += 1
+
+    recurring_headers = {k for k, v in header_counts.items() if v >= threshold}
+    recurring_footers = {k for k, v in footer_counts.items() if v >= threshold}
+
+    cleaned_pages = []
+    for plines in pages_lines:
+        filtered = []
+        n_lines = len(plines)
+        for idx, line in enumerate(plines):
+            s = line.strip()
+            if not s:
+                continue
+
+            # Drop page numbers, roman numerals, decorative dividers
+            if is_page_number_or_artifact(s):
+                continue
+
+            # Drop recurring top/bottom headers & footers
+            norm = normalize_header_candidate(s)
+            if idx <= 2 and norm in recurring_headers:
+                continue
+            if idx >= n_lines - 3 and norm in recurring_footers:
+                continue
+
+            # Strip in-text bracket footnotes e.g. 'word[1]' or 'word.[12]'
+            cleaned_line = re.sub(r"\[\d+(?:[–\-,\s]+\d+)*\]", "", line)
+
+            filtered.append(cleaned_line)
+
+        page_text = "\n".join(filtered)
+
+        # Fix hyphenated line breaks (e.g., 'infor-\nmation' -> 'information')
+        page_text = re.sub(r"(\b[A-Za-z]+)[-\xad\u2010\u2011]\n([A-Za-z]+\b)", r"\1\2", page_text)
+
+        # Standardize quotes and dashes
+        page_text = page_text.replace("“", '"').replace("”", '"')
+        page_text = page_text.replace("‘", "'").replace("’", "'")
+        page_text = page_text.replace("—", " — ").replace("–", " — ")
+
+        # Collapse multiple spaces (preserve newlines)
+        page_text = re.sub(r"[ \t]+", " ", page_text)
+        page_text = re.sub(r"\n\s*\n\s*\n+", "\n\n", page_text)
+
+        cleaned_pages.append(page_text.strip())
+
+    return cleaned_pages
+
+
 def clean_text_chunk(text: str) -> str:
-    """Cleans raw extracted text for natural TTS reading."""
+    """Cleans raw extracted text for natural, artifact-free TTS reading."""
     if not text:
         return ""
 
     text = text.replace("\r\n", "\n").replace("\r", "\n")
 
     # Fix hyphenated line breaks (e.g., 'infor-\nmation' -> 'information')
-    text = re.sub(r"(\b[A-Za-z]+)-\n([A-Za-z]+\b)", r"\1\2", text)
+    text = re.sub(r"(\b[A-Za-z]+)[-\xad\u2010\u2011]\n([A-Za-z]+\b)", r"\1\2", text)
 
-    # Remove lone page numbers and headers
+    # Filter lines
     lines = text.split("\n")
     cleaned_lines = []
     for line in lines:
         stripped = line.strip()
-        if re.match(r"^[-—–]?\s*\d+\s*[-—–]?$", stripped):
+        if not stripped:
             continue
-        if re.match(r"^Page\s+\d+(\s+of\s+\d+)?$", stripped, re.IGNORECASE):
+        if is_page_number_or_artifact(stripped):
             continue
-        cleaned_lines.append(line)
-    
+        # Strip bracket citations e.g. [1], [2, 3]
+        clean_l = re.sub(r"\[\d+(?:[–\-,\s]+\d+)*\]", "", line)
+        cleaned_lines.append(clean_l)
+
     text = "\n".join(cleaned_lines)
 
     # Standardize quotes and dashes
@@ -42,7 +208,7 @@ def clean_text_chunk(text: str) -> str:
     # Collapse multiple spaces (preserve newlines)
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
-    
+
     return text.strip()
 
 
@@ -100,13 +266,24 @@ class PDFProcessor:
         if not title or title.lower() in ["untitled", "audiobook", "document"]:
             title = base_name.replace("_", " ").replace("-", " ").title()
 
-        pages_text = []
+        raw_pages = []
         for i, page in enumerate(reader.pages):
             try:
                 page_raw = page.extract_text() or ""
-                pages_text.append((i + 1, clean_text_chunk(page_raw)))
-            except Exception as e:
-                pages_text.append((i + 1, f"[Page {i+1}]"))
+                raw_pages.append(page_raw)
+            except Exception:
+                raw_pages.append("")
+
+        # Multi-page running header/footer and page number detection & elimination
+        cleaned_pages = clean_document_pages(raw_pages)
+
+        pages_text = []
+        for i, text in enumerate(cleaned_pages):
+            if text.strip():
+                pages_text.append((i + 1, text))
+
+        if not pages_text:
+            pages_text = [(1, "No extractable text found in document.")]
 
         # Bookmarks -> Regex -> Length
         chapters = PDFProcessor._extract_by_bookmarks(reader, pages_text)
@@ -186,20 +363,24 @@ class PDFProcessor:
 
             if p.style and p.style.name.startswith("Heading"):
                 if current_paras:
-                    chapters.append({
-                        "title": current_title,
-                        "content": "\n\n".join(current_paras)
-                    })
+                    cleaned_content = clean_text_chunk("\n\n".join(current_paras))
+                    if cleaned_content:
+                        chapters.append({
+                            "title": current_title,
+                            "content": cleaned_content
+                        })
                     current_paras = []
                 current_title = text
             else:
                 current_paras.append(text)
 
         if current_paras:
-            chapters.append({
-                "title": current_title,
-                "content": "\n\n".join(current_paras)
-            })
+            cleaned_content = clean_text_chunk("\n\n".join(current_paras))
+            if cleaned_content:
+                chapters.append({
+                    "title": current_title,
+                    "content": cleaned_content
+                })
 
         if not chapters:
             full_text = "\n\n".join([p.text for p in doc.paragraphs if p.text.strip()])

@@ -245,13 +245,15 @@ class GenerateAudiobookRequest(BaseModel):
     title: Optional[str] = None
     author: Optional[str] = None
     selected_chapters: Optional[List[int]] = None
+    format_preference: Optional[str] = "both"  # "single", "playlist", or "both"
 
 
 async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
-    """Background task to synthesize all requested chapters and generate MP3 & ZIP."""
+    """Background task to synthesize requested chapters and generate single MP3, playlist ZIP, or both."""
     book = BOOKS[req.book_id]
     book_title = req.title or book.get("title", "Audiobook")
     author = req.author or book.get("author", "Unknown Author")
+    format_pref = req.format_preference or "both"
     
     # Filter chapters
     all_chapters = book["chapters"]
@@ -278,7 +280,7 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
             "current_chapter": i + 1,
             "total_chapters": total_chapters,
             "chapter_title": ch_title,
-            "percent": round((i / total_chapters) * 100, 1),
+            "percent": round((i / total_chapters) * 90, 1),
             "message": f"Synthesizing Chapter {i + 1} of {total_chapters}: {ch_title}"
         })
 
@@ -316,11 +318,11 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
             })
             return
 
-    # Master Audiobook file
+    # Master Audiobook / Playlist packaging
     await broadcast_progress(job_id, {
         "status": "finalizing",
         "percent": 95,
-        "message": "Building master audiobook and packaging ZIP bundle..."
+        "message": "Packaging audiobook files according to your preference..."
     })
 
     safe_book_title = "".join(c for c in book_title if c.isalnum() or c in (" ", "-", "_")).strip()
@@ -328,19 +330,27 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
     zip_path = os.path.join(job_output_dir, f"{safe_book_title}_Chapters_Bundle.zip")
 
     try:
-        # Merge master MP3
-        chapter_paths = [ch["path"] for ch in synthesized_chapters]
-        AudiobookBuilder.merge_chapters(chapter_paths, master_mp3_path, title=book_title, author=author)
+        master_mp3_url = None
+        zip_url = None
 
-        # Build ZIP archive
-        AudiobookBuilder.create_zip_package(synthesized_chapters, zip_path, book_title=book_title, author=author)
+        # 1. Merge into single master MP3 if requested
+        if format_pref in ("single", "both"):
+            chapter_paths = [ch["path"] for ch in synthesized_chapters]
+            AudiobookBuilder.merge_chapters(chapter_paths, master_mp3_path, title=book_title, author=author)
+            master_mp3_url = f"/outputs/{job_id}/{os.path.basename(master_mp3_path)}"
+
+        # 2. Package into chapter playlist ZIP (M3U + M3U8) if requested
+        if format_pref in ("playlist", "both"):
+            AudiobookBuilder.create_zip_package(synthesized_chapters, zip_path, book_title=book_title, author=author)
+            zip_url = f"/outputs/{job_id}/{os.path.basename(zip_path)}"
 
         result_data = {
             "status": "completed",
             "percent": 100,
             "message": "Audiobook generated successfully!",
-            "master_mp3_url": f"/outputs/{job_id}/{os.path.basename(master_mp3_path)}",
-            "zip_url": f"/outputs/{job_id}/{os.path.basename(zip_path)}",
+            "format_preference": format_pref,
+            "master_mp3_url": master_mp3_url,
+            "zip_url": zip_url,
             "chapters": synthesized_chapters,
             "book_title": book_title,
             "author": author

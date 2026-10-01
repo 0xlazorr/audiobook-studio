@@ -8,9 +8,14 @@ Featuring Microsoft Edge's latest high-emotion multilingual neural narrators, re
 
 ## ✨ Features
 
-- **📄 Universal Document Ingestion**:
+- **📄 Universal Document Ingestion & Zero-Artifact Engine**:
   - Supports **PDF**, **EPUB eBooks**, **Word (.docx)**, **Markdown (.md)**, **HTML**, **Plain Text (.txt)**, and **Rich Text (.rtf)**.
-  - Automatically cleans headers, footers, orphan page numbers, and hyphenated word breaks (`infor-\nmation` &rarr; `information`).
+  - **Zero Page-Number & Running Header Artifacts**:
+    - **Cross-page recurring header/footer detector**: Detects and purges running book titles, chapter headers, and author names printed at the top/bottom of consecutive pages.
+    - **Isolated page numbers**: Automatically strips numbers like `12`, `- 12 -`, `[ 12 ]`, `— 12 —`, `Page 12 of 345`, `p. 12`, `pp. 12-14`.
+    - **Roman numerals**: Detects and removes standalone Roman numeral page markers (`iv`, `xii`, `— iv —`, `[xiv]`) while preserving chapter titles (`Chapter IV`).
+    - **Citations & Footnotes**: Automatically strips bracket citations (`[1]`, `[2, 3]`) so speech sounds completely natural.
+    - **Hyphenation & Dividers**: Heals hyphenated line breaks (`infor-\nmation` &rarr; `information`) and converts decorative dividers (`* * *`, `---`) into natural pauses.
   - Automatically segments chapters via eBook structure, PDF bookmarks, Word heading styles, or Markdown `# Heading` tags.
 
 - **🎙️ High-Emotion Neural Narrators**:
@@ -38,6 +43,14 @@ Featuring Microsoft Edge's latest high-emotion multilingual neural narrators, re
   - **Dramatic & Deep (0.92x, -5Hz)**: Resonant lower register for suspense and mystery.
   - **Authoritative Documentary (1.0x, -2Hz)**: Polished, intellectual delivery.
 
+- **🎧 Flexible Audiobook Output Formats (Single File vs. Playlist)**:
+  - **Single Continuous Audiobook (.MP3)**: All chapters losslessly joined into one master file with embedded ID3 metadata tags (Title, Artist, Album, Track). Ideal for uninterrupted Audible-style listening.
+  - **Chapter Playlist Bundle (.ZIP)**: Separate chapter MP3 files packaged with both standard **`.m3u`** and modern UTF-8 **`.m3u8`** playlist files, plus a playback guide. Ideal for VLC, iTunes, car audio, and mobile podcast players.
+  - **Complete Edition (Both)**: Generates both the single master file and the chapter playlist bundle.
+  - **Custom Chapter Scope**: Generate the full book or select specific chapters to convert.
+  - **Direct Chapter Downloads**: Download or play individual chapter tracks directly from the web interface without unzipping.
+  - Speech-optimized 24kHz mono MP3 at 48 kbps (~21 MB per hour of audio).
+
 - **📖 Read-Along Immersion Mode**:
   - Text is formatted like a printed book with [Newsreader](https://fonts.google.com/specimen/Newsreader) serif typography.
   - In audio preview mode, the speech engine streams sentence boundaries so the **exact sentence being read highlights in warm yellow in real time**.
@@ -46,11 +59,6 @@ Featuring Microsoft Edge's latest high-emotion multilingual neural narrators, re
 - **🌙 Kindle-Style Dark Mode**:
   - 1-click toggle between warm paper daylight mode and warm charcoal night mode (`#141311`).
   - No harsh neon or artificial gradients.
-
-- **📦 Audiobook Downloads & Compact File Sizes**:
-  - Speech-optimized 24kHz mono MP3 at 48 kbps (~21 MB per hour of audio).
-  - **Master Audiobook (.MP3)**: Losslessly concatenated single audio file with embedded ID3 metadata tags (Title, Author, Album, Genre).
-  - **Chapters Bundle (.ZIP)**: Individual chapter MP3s organized with an `.m3u` playlist for phone players.
 
 - **🧹 Automated Disk Storage Cleaner**:
   - Automatic background garbage collector purges temporary uploads, preview snippets, and converted audiobooks older than 2 hours.
