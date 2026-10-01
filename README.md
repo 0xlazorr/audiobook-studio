@@ -92,6 +92,43 @@ Upload your book (`.pdf`, `.epub`, `.docx`, etc.), select your narrator, and cli
 
 ---
 
+## 🌐 Deployment Options
+
+### Option A: Render (Recommended — 1-Click Free Hosting)
+Render supports long-running Python services, WebSockets, background tasks, and has no 10-second timeout.
+1. Fork or push this repository to your GitHub.
+2. Go to [Render.com](https://render.com) &rarr; **New Web Service**.
+3. Select your repository (`audiobook-studio`).
+4. Set:
+   - **Environment**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python3 -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Click **Deploy**.
+
+---
+
+### Option B: Railway / Fly.io / Docker
+A `Dockerfile` is provided for containerized deployment:
+```bash
+docker build -t audiobook-studio .
+docker run -p 8000:8000 audiobook-studio
+```
+On [Railway.app](https://railway.app), simply connect this repository and it will automatically deploy using the provided `Dockerfile`.
+
+---
+
+### Option C: Vercel (Serverless)
+This repository includes [`vercel.json`](file:///home/lazorr/audiobook-studio/vercel.json) and [`api/index.py`](file:///home/lazorr/audiobook-studio/api/index.py) configured for Vercel.
+> [!NOTE]
+> **Vercel Serverless Limits**: Vercel free tier imposes a strict **10–15 second timeout** on serverless functions and an ephemeral `/tmp` filesystem. While previews and quick conversions work, generating long books (>10 seconds) on Vercel may exceed Vercel's execution limits. For long audiobooks, **Render** or **Railway** is recommended.
+
+To deploy on Vercel:
+1. Push this repository to GitHub.
+2. Import the project into your Vercel dashboard.
+3. Vercel will automatically detect `api/index.py` and deploy the application.
+
+---
+
 ## 🛠️ Configuration & Hosting
 
 Environment variables in [`app/config.py`](file:///home/lazorr/audiobook-studio/app/config.py):
@@ -102,6 +139,7 @@ Environment variables in [`app/config.py`](file:///home/lazorr/audiobook-studio/
 | `MAX_UPLOAD_SIZE_MB` | `50` | Maximum file upload size in MB |
 | `FILE_RETENTION_HOURS` | `2` | Auto-deletes temp audio and uploads older than X hours |
 | `CLEANUP_INTERVAL_MINUTES` | `30` | How often the background disk sweeper runs |
+| `VERCEL` | `None` | Automatically set by Vercel to route data to `/tmp` |
 
 ---
 

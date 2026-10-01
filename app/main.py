@@ -52,8 +52,7 @@ ACTIVE_WEBSOCKETS: Dict[str, List[WebSocket]] = {}
 ALL_VOICES_CACHE: List[Dict[str, Any]] = []
 
 
-@app.on_event("startup")
-async def startup_event():
+async def _load_voice_catalog():
     global ALL_VOICES_CACHE
     try:
         raw_voices = await edge_tts.list_voices()
@@ -70,10 +69,19 @@ async def startup_event():
     except Exception as e:
         print(f"Warning: Failed to fetch online voice catalog: {e}")
 
-    # Launch automated background disk cleaner to prevent storage clogging
-    asyncio.create_task(periodic_cleanup_loop())
-    # Initial cleanup on startup
-    purge_old_files(FILE_RETENTION_HOURS)
+
+@app.on_event("startup")
+async def startup_event():
+    # Non-blocking voice catalog background fetch
+    asyncio.create_task(_load_voice_catalog())
+
+    # Only run background disk cleanup loops if not in a serverless environment
+    if not os.getenv("VERCEL"):
+        asyncio.create_task(periodic_cleanup_loop())
+        try:
+            purge_old_files(FILE_RETENTION_HOURS)
+        except Exception:
+            pass
 
 
 @app.get("/api/config")

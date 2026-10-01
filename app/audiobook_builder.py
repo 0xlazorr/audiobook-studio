@@ -41,6 +41,32 @@ class AudiobookBuilder:
             print(f"Warning: Failed to tag {file_path}: {e}")
 
     @staticmethod
+    def _strip_id3_bytes(data: bytes) -> bytes:
+        """Strips ID3v2 header and ID3v1 footer to extract raw MPEG audio frames."""
+        if data.startswith(b"ID3") and len(data) >= 10:
+            size_bytes = data[6:10]
+            tag_size = ((size_bytes[0] & 0x7F) << 21) | \
+                       ((size_bytes[1] & 0x7F) << 14) | \
+                       ((size_bytes[2] & 0x7F) << 7) | \
+                       (size_bytes[3] & 0x7F)
+            header_len = 10 + tag_size
+            if data[5] & 0x10:
+                header_len += 10
+            data = data[header_len:]
+        if data.endswith(b"TAG") or (len(data) >= 128 and data[-128:-125] == b"TAG"):
+            data = data[:-128]
+        return data
+
+    @staticmethod
+    def _merge_chapters_python(chapter_files: List[str], output_file: str):
+        """Concatenates MP3 chapter streams in pure Python without requiring ffmpeg."""
+        with open(output_file, "wb") as out_f:
+            for cf in chapter_files:
+                with open(cf, "rb") as in_f:
+                    raw = in_f.read()
+                out_f.write(AudiobookBuilder._strip_id3_bytes(raw))
+
+    @staticmethod
     def merge_chapters(
         chapter_files: List[str],
         output_file: str,
@@ -49,31 +75,35 @@ class AudiobookBuilder:
     ) -> str:
         """
         Concatenates all chapter files into a single master MP3 audiobook
-        and applies metadata tags.
+        and applies metadata tags. Uses ffmpeg stream copy when available,
+        falling back to lossless pure Python MPEG frame stitching.
         """
         if not chapter_files:
             raise ValueError("No chapter files provided for merging.")
 
         if len(chapter_files) == 1:
-            # Just copy or reuse
-            cmd = ["cp", chapter_files[0], output_file]
-            subprocess.run(cmd, check=True)
-        else:
+            shutil.copyfile(chapter_files[0], output_file)
+        elif shutil.which("ffmpeg"):
             list_txt_path = output_file + ".list.txt"
-            with open(list_txt_path, "w", encoding="utf-8") as f:
-                for cf in chapter_files:
-                    f.write(f"file '{cf}'\n")
+            try:
+                with open(list_txt_path, "w", encoding="utf-8") as f:
+                    for cf in chapter_files:
+                        f.write(f"file '{cf}'\n")
 
-            cmd = [
-                "ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                "-i", list_txt_path, "-c", "copy", output_file
-            ]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            if os.path.exists(list_txt_path):
-                os.remove(list_txt_path)
-
-            if res.returncode != 0:
-                raise RuntimeError(f"Failed to merge audiobook files: {res.stderr}")
+                cmd = [
+                    "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                    "-i", list_txt_path, "-c", "copy", output_file
+                ]
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                if res.returncode != 0:
+                    AudiobookBuilder._merge_chapters_python(chapter_files, output_file)
+            except Exception:
+                AudiobookBuilder._merge_chapters_python(chapter_files, output_file)
+            finally:
+                if os.path.exists(list_txt_path):
+                    os.remove(list_txt_path)
+        else:
+            AudiobookBuilder._merge_chapters_python(chapter_files, output_file)
 
         # Tag master file
         AudiobookBuilder.tag_mp3(
