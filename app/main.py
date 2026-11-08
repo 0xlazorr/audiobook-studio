@@ -8,12 +8,21 @@ import os
 import uuid
 import asyncio
 import shutil
+from enum import Enum
 from typing import Dict, Any, List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+class JobStatus(str, Enum):
+    """Explicit state machine for audiobook synthesis jobs."""
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    FINALIZING = "finalizing"
+    COMPLETED = "completed"
+    ERROR = "error"
 
 from app.config import (
     BASE_DIR, UPLOADS_DIR, OUTPUTS_DIR, CACHE_DIR,
@@ -103,7 +112,7 @@ async def broadcast_progress(job_id: str, data: Dict[str, Any]):
     """Sends real-time progress update to connected WebSockets."""
     if job_id in JOBS:
         # Don't let late progress callbacks overwrite completed status
-        if JOBS[job_id].get("status") == "completed" and data.get("status") != "completed":
+        if JOBS[job_id].get("status") == JobStatus.COMPLETED and data.get("status") != JobStatus.COMPLETED:
             return
         JOBS[job_id].update(data)
     if job_id in ACTIVE_WEBSOCKETS:
@@ -275,7 +284,7 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
 
     total_chapters = len(target_chapters)
     if total_chapters == 0:
-        await broadcast_progress(job_id, {"status": "error", "message": "No chapters selected."})
+        await broadcast_progress(job_id, {"status": JobStatus.ERROR.value, "message": "No chapters selected."})
         return
 
     job_output_dir = os.path.join(OUTPUTS_DIR, job_id)
@@ -287,7 +296,7 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
         ch_idx = ch["index"]
         ch_title = ch["title"]
         await broadcast_progress(job_id, {
-            "status": "processing",
+            "status": JobStatus.PROCESSING.value,
             "current_chapter": i + 1,
             "total_chapters": total_chapters,
             "chapter_title": ch_title,
@@ -324,14 +333,14 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
         except Exception as e:
             print(f"Error synthesizing chapter {ch_idx}: {e}")
             await broadcast_progress(job_id, {
-                "status": "error",
+                "status": JobStatus.ERROR.value,
                 "message": f"Error synthesizing {ch_title}: {str(e)}"
             })
             return
 
     # Master Audiobook / Playlist packaging
     await broadcast_progress(job_id, {
-        "status": "finalizing",
+        "status": JobStatus.FINALIZING.value,
         "percent": 95,
         "message": "Packaging audiobook files according to your preference..."
     })
@@ -356,7 +365,7 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
             zip_url = f"/outputs/{job_id}/{os.path.basename(zip_path)}"
 
         result_data = {
-            "status": "completed",
+            "status": JobStatus.COMPLETED.value,
             "percent": 100,
             "message": "Audiobook generated successfully!",
             "format_preference": format_pref,
@@ -370,7 +379,7 @@ async def run_audiobook_synthesis(job_id: str, req: GenerateAudiobookRequest):
 
     except Exception as e:
         await broadcast_progress(job_id, {
-            "status": "error",
+            "status": JobStatus.ERROR.value,
             "message": f"Failed to assemble final audiobook: {str(e)}"
         })
 
@@ -385,14 +394,14 @@ async def generate_audiobook(req: GenerateAudiobookRequest, background_tasks: Ba
     JOBS[job_id] = {
         "job_id": job_id,
         "book_id": req.book_id,
-        "status": "queued",
+        "status": JobStatus.QUEUED.value,
         "percent": 0,
         "message": "Starting conversion...",
         "created_at": str(asyncio.get_event_loop().time())
     }
 
     background_tasks.add_task(run_audiobook_synthesis, job_id, req)
-    return {"job_id": job_id, "status": "queued"}
+    return {"job_id": job_id, "status": JobStatus.QUEUED.value}
 
 
 @app.get("/api/audiobook-status/{job_id}")
